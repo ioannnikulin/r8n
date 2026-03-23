@@ -6,3 +6,5 @@ build
 *.jar
 deployment/certs/
 docker.secrets.env
+frontend/node_modules/
+frontend/dist/
