@@ -1,6 +1,7 @@
 [versions]
 guava = "33.4.6-jre"
-jackson = "2.21.1"
+jackson = "3.1.0"
+jackson-jsr310 = "2.21.1"
 kotlin = "2.2.21"
 liquibase = "4.27.0"
 mockito = "5.2.1"
@@ -24,8 +25,11 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 
 [libraries]
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
-jackson-datatype = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
-jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson-jsr310" }
+jackson-annotations = { module = "tools.jackson.core:jackson-annotations", version.ref = "jackson" }
+jackson-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-jpa = { module = "org.jetbrains.kotlin.plugin.jpa:org.jetbrains.kotlin.plugin.jpa.gradle.plugin", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }

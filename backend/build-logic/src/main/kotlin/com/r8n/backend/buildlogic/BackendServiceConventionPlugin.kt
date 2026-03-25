@@ -23,7 +23,7 @@ class BackendServiceConventionPlugin : Plugin<Project> {
                 add("implementation", project(":core:api"))
                 add("implementation", project(":core:utils"))
 
-                add("implementation", libs.findLibrary("jackson-datatype").get())
+                add("implementation", libs.findLibrary("jackson-jsr310").get())
                 add("implementation", libs.findLibrary("jackson-module-kotlin").get())
                 add("implementation", libs.findLibrary("spring-boot-starter").get())
                 add("implementation", libs.findLibrary("spring-data-commons").get())

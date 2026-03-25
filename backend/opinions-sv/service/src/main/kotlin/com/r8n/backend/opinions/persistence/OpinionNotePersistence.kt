@@ -15,7 +15,7 @@ import java.util.UUID
 class OpinionNotePersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     val id: UUID,
 
     @Column(nullable = false)

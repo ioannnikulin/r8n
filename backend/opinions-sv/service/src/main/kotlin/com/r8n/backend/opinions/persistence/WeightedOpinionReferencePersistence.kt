@@ -13,7 +13,7 @@ import java.util.UUID
 class WeightedOpinionReferencePersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     val id: UUID,
 
     @Column(nullable = false)
