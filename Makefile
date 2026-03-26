@@ -218,6 +218,23 @@ docker-database-drop-volume-campus: ## Delete local Docker DB volume (campus)
 	@# yes this is the only way, since some files are owned by root, and you don't have sudo rights in campus
 	@docker run --rm -v ./deployment/database:/pg alpine rm -rf /pg/data
 
+docker-run-database: ## Start only the database container
+	chmod a+x deployment/database/init/01_create_schemas.sh
+	docker compose $(DOCKER_COMPOSE_ENV_ARGS) -f docker-compose.yml up -d database
+
+$(addprefix local-run-,$(SERVICES)): local-run-%: ## Run one backend service locally
+	@echo "Starting $*-sv..."
+	@$(LOAD_LOCAL_ENV) \
+	profiles="local"; \
+	[ "$*" = "opinions" ] && profiles="local,mocked-users" || true; \
+	cd backend && (./gradlew :$*-sv:bootRun --args="--spring.profiles.active=$$profiles" > $*.log 2>&1 & \
+	echo $$! > /tmp/$*.pid)
+
+build-opinions: ## Build opinions service with tests
+	cd backend && ./gradlew :opinions-sv:build | tee build.log
+
+local-stop-all: $(addprefix local-stop-,$(SERVICES)) ## Stop all local backend services
+
 docker-database-connect: ## Connect to local database via psql
 	$(LOAD_LOCAL_ENV) \
 	docker exec -it database psql -U $$DATABASE_USERNAME -d $$DATABASE_NAME

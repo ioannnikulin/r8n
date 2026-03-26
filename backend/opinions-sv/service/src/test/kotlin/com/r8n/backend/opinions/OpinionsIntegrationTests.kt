@@ -95,6 +95,33 @@ class OpinionsIntegrationTests {
 
         assertEquals(expected, actual)
     }
+    @Test
+    @WithMockUser
+    fun `get opinion for subject works`() {
+        val requestedSubjectId = "14141414-1414-1414-1414-141414141414"
+        val result = mockMvc.perform(
+            get("/opinions/for/$requestedSubjectId")
+                .header("Authorization", "Bearer stub-access-token-123"),
+        )
+            .andExpect(status().isOk).andReturn()
+
+        val actual: OpinionDto = objectMapper.readValue(result.response.contentAsString)
+        val expected = OpinionDto(
+            UUID.fromString("30000000-0000-0000-0000-000000000001"),
+            bernardReferent.id,
+            bernardReferent.name,
+            cappuccino1A.id,
+            cappuccino1A.name,
+            listOf("reminds of grandma's home coffee"),
+            listOf("5.50€", "lactose-free milk"),
+            4.23,
+            null,
+            emptyList(),
+            OpinionStatusEnumDto.DRAFT,
+            Instant.parse("2024-02-01T09:30:00Z"),
+        )
+        assertEquals(expected, actual)
+    }
 
     @Test
     fun `delete opinion requires admin role`() {

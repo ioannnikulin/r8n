@@ -14,7 +14,9 @@ class OpinionController(
 ) : OpinionApi {
     override fun getOpinionById(id: UUID) = opinionFacade.getOpinionDto(id)
 
-    override fun getOpinionFor(subjectId: UUID) = OpinionTestDataFactory.getOpinion(subjectId)
+    override fun getOpinionFor(
+        subjectId: UUID,
+    ) = opinionFacade.getOpinionForDto(subjectId)
 
     override fun createOpinion(
         subjectId: UUID,
@@ -57,5 +59,7 @@ class OpinionController(
     override fun adjustComponentWeight(
         linkId: UUID,
         weight: Double,
-    ): OpinionDto = OpinionTestDataFactory.getOpinion(UUID.fromString("0"))
+    ): OpinionDto =
+        OpinionTestDataFactory.getOpinion(UUID.fromString("0"))
+
 }
