@@ -4,9 +4,10 @@ import com.r8n.backend.mock.stub.OpinionTestDataFactory
 import com.r8n.backend.opinions.api.OpinionApi
 import com.r8n.backend.opinions.api.dto.OpinionDto
 import com.r8n.backend.opinions.facade.OpinionFacade
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.RestController
 
 @RestController
 class OpinionController(
@@ -17,16 +18,15 @@ class OpinionController(
     override fun getOpinionFor(subjectId: UUID) = opinionFacade.getOpinionFor(subjectId)
 
     override fun createOpinion(
+        @RequestParam(required = true)
         subjectId: UUID,
+        @RequestParam(required = false)
         subjective: List<String>,
+        @RequestParam(required = false)
         objective: List<String>,
+        @RequestParam(required = false)
         mark: Double?,
-    ) = OpinionTestDataFactory.postOpinion(
-        subjectId = subjectId,
-        subjective = subjective,
-        objective = objective,
-        mark = mark,
-    )
+    ) = opinionFacade.createOpinionDto(subjectId, subjective, objective, mark)
 
     override fun updateOpinion(
         opinionId: UUID,

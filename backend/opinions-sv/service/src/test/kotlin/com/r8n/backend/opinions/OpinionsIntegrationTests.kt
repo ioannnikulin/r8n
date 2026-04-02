@@ -2,6 +2,7 @@ package com.r8n.backend.opinions
 
 import com.r8n.backend.mock.stub.OpinionSubjectTestDataFactory.bernardReferent
 import com.r8n.backend.mock.stub.OpinionSubjectTestDataFactory.cappuccino1A
+import com.r8n.backend.mock.stub.OpinionSubjectTestDataFactory.cappuccino1G
 import com.r8n.backend.opinions.api.dto.OpinionDto
 import com.r8n.backend.opinions.api.dto.OpinionStatusEnumDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
@@ -22,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -165,5 +167,32 @@ class OpinionsIntegrationTests {
             get("/opinions/30000000-0000-0000-0000-000000000001")
                 .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SERVICE")))
         ).andExpect(status().isOk)
+    }
+
+    @Test
+    @WithMockUser
+    fun `create opinion works`() {
+        val subjectId = "15151515-1515-1515-1515-151515151515"
+        val result =
+            mockMvc
+                .perform(
+                    post("/opinions")
+                        .queryParam("subjectId", subjectId)
+                        .queryParam("subjective", "new subjective")
+                        .queryParam("objective", "new objective")
+                        .queryParam("mark", "4.50")
+                        .header("Authorization", "Bearer stub-access-token-123"),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val actual: OpinionDto = objectMapper.readValue(result.response.contentAsString)
+        assertEquals(UUID.fromString("10101010-1010-1010-1010-101010101010"), actual.owner)
+        assertEquals(bernardReferent.name, actual.ownerName)
+        assertEquals(UUID.fromString(subjectId), actual.subject)
+        assertEquals(cappuccino1G.name, actual.subjectName)
+        assertEquals(listOf("new subjective"), actual.subjective)
+        assertEquals(listOf("new objective"), actual.objective)
+        assertEquals(4.5, actual.mark)
+        assertEquals(OpinionStatusEnumDto.DRAFT, actual.status)
     }
 }
