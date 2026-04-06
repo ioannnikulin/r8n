@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import {
   expect,
   test as base,
@@ -136,14 +137,19 @@ const buildFailureMessage = (issues: BrowserIssue[]) => {
 
 const attachIssuesReport = async (testInfo: TestInfo, pages: Page[], issues: BrowserIssue[]) => {
   const attachment = await buildIssuesAttachment(testInfo, pages, issues);
+  const textReportPath = testInfo.outputPath("browser-console-issues.txt");
+  const jsonReportPath = testInfo.outputPath("browser-console-issues.json");
+
+  await writeFile(textReportPath, issues.map(formatIssue).join("\n\n"), "utf8");
+  await writeFile(jsonReportPath, JSON.stringify(attachment, null, 2), "utf8");
 
   await testInfo.attach("browser-console-issues", {
-    body: issues.map(formatIssue).join("\n\n"),
+    path: textReportPath,
     contentType: "text/plain",
   });
 
   await testInfo.attach("browser-console-issues.json", {
-    body: JSON.stringify(attachment, null, 2),
+    path: jsonReportPath,
     contentType: "application/json",
   });
 };
@@ -160,9 +166,15 @@ const buildIssuesAttachment = async (
   const pageDiagnostics = await Promise.all(
     pagesWithIssues.map(async (page, index) => {
       const screenshotAttachment = `browser-console-page-${index + 1}.png`;
+      const screenshotPath = testInfo.outputPath(screenshotAttachment);
+
+      await page.screenshot({
+        fullPage: true,
+        path: screenshotPath,
+      });
 
       await testInfo.attach(screenshotAttachment, {
-        body: await page.screenshot({ fullPage: true }),
+        path: screenshotPath,
         contentType: "image/png",
       });
 
