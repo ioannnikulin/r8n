@@ -276,8 +276,11 @@ const CreateReview = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Subject / Item Name */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">What are you reviewing?</label>
+            <label htmlFor="review-subject-name" className="mb-1.5 block text-sm font-medium text-foreground">
+              What are you reviewing?
+            </label>
             <input
+              id="review-subject-name"
               type="text"
               value={subjectName}
               onChange={(e) => setSubjectName(e.target.value)}
@@ -354,8 +357,11 @@ const CreateReview = () => {
               <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground/60">Facts</span>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Objective Notes</label>
+              <label htmlFor="review-objective-notes" className="mb-1.5 block text-sm font-medium text-foreground">
+                Objective Notes
+              </label>
               <textarea
+                id="review-objective-notes"
                 value={objectiveText}
                 onChange={(e) => setObjectiveText(e.target.value)}
                 placeholder="Factual observations: quality, speed, price, materials..."
@@ -373,8 +379,11 @@ const CreateReview = () => {
               <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground/60">Taste</span>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Your Opinion</label>
+              <label htmlFor="review-subjective-opinion" className="mb-1.5 block text-sm font-medium text-foreground">
+                Your Opinion
+              </label>
               <textarea
+                id="review-subjective-opinion"
                 value={subjectiveText}
                 onChange={(e) => setSubjectiveText(e.target.value)}
                 placeholder="Your personal feelings, experience, and honest opinion..."
@@ -397,9 +406,12 @@ const CreateReview = () => {
 
           {/* Add to list */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Add to List (optional)</label>
+            <label htmlFor="review-selected-list" className="mb-1.5 block text-sm font-medium text-foreground">
+              Add to List (optional)
+            </label>
             <div className="flex gap-2">
               <select
+                id="review-selected-list"
                 value={selectedList}
                 onChange={(e) => setSelectedList(e.target.value)}
                 className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"

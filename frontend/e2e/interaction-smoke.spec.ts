@@ -53,16 +53,16 @@ test("access request dialog flow stays clean after opening, selecting a list, an
 test("create review flow stays clean after filling and submitting the form", async ({ page }) => {
   await page.goto("/create");
 
-  await page.getByPlaceholder("e.g., Flat White, Dyson V15 Detect, Margherita Pizza...").fill("Flat White");
+  await page.getByLabel("What are you reviewing?").fill("Flat White");
   await page.getByRole("button", { name: /Bonanza Coffee/ }).click();
   await page.getByRole("button", { name: "8" }).click();
-  await page.getByPlaceholder("Factual observations: quality, speed, price, materials...").fill(
+  await page.getByLabel("Objective Notes").fill(
     "Balanced extraction, silky milk texture, served warm."
   );
-  await page.getByPlaceholder("Your personal feelings, experience, and honest opinion...").fill(
+  await page.getByLabel("Your Opinion").fill(
     "Comforting and well-structured cup with a clean finish."
   );
-  await page.getByRole("combobox").selectOption("Best espresso in Berlin");
+  await page.getByLabel("Add to List (optional)").selectOption("Best espresso in Berlin");
   await page.getByRole("button", { name: "Publish Review" }).click();
 
   await expect(page).toHaveURL(/\/$/);
@@ -74,8 +74,8 @@ test("create review flow stays clean after filling and submitting the form", asy
 test("create list flow stays clean after changing visibility and submitting", async ({ page }) => {
   await page.goto("/lists/create");
 
-  await page.getByPlaceholder("e.g., Best espresso in Berlin, Top vacuums 2026...").fill("Quiet cafes for writing");
-  await page.getByPlaceholder("What's this list about? Help others understand your curation...").fill(
+  await page.getByLabel("List name").fill("Quiet cafes for writing");
+  await page.getByLabel("Description").fill(
     "Calm spots with stable Wi-Fi, good coffee, and enough space to focus."
   );
   await page.getByRole("button", { name: "Searchable Discoverable by others" }).click();

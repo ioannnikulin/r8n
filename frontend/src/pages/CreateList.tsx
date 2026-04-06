@@ -54,8 +54,11 @@ const CreateList = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Title */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">List name</label>
+            <label htmlFor="create-list-name" className="mb-1.5 block text-sm font-medium text-foreground">
+              List name
+            </label>
             <input
+              id="create-list-name"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -66,8 +69,11 @@ const CreateList = () => {
 
           {/* Description */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+            <label htmlFor="create-list-description" className="mb-1.5 block text-sm font-medium text-foreground">
+              Description
+            </label>
             <textarea
+              id="create-list-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What's this list about? Help others understand your curation..."

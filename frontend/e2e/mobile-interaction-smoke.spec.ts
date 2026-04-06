@@ -36,13 +36,13 @@ test("mobile create review flow stays clean when started from bottom navigation"
   await page.getByRole("link", { name: "Create" }).click();
   await expect(page).toHaveURL(/\/create$/);
 
-  await page.getByPlaceholder("e.g., Flat White, Dyson V15 Detect, Margherita Pizza...").fill("Cappuccino");
+  await page.getByLabel("What are you reviewing?").fill("Cappuccino");
   await page.getByRole("button", { name: /Bonanza Coffee/ }).click();
   await page.getByRole("button", { name: "7" }).click();
-  await page.getByPlaceholder("Factual observations: quality, speed, price, materials...").fill(
+  await page.getByLabel("Objective Notes").fill(
     "Medium body, balanced acidity, and stable milk foam."
   );
-  await page.getByPlaceholder("Your personal feelings, experience, and honest opinion...").fill(
+  await page.getByLabel("Your Opinion").fill(
     "Comforting everyday cup that feels dependable."
   );
   await page.getByRole("button", { name: "Publish Review" }).click();
@@ -62,8 +62,8 @@ test("mobile create list flow stays clean when started from bottom navigation", 
   await page.getByRole("link", { name: "New List" }).click();
   await expect(page).toHaveURL(/\/lists\/create$/);
 
-  await page.getByPlaceholder("e.g., Best espresso in Berlin, Top vacuums 2026...").fill("Late-night coffee spots");
-  await page.getByPlaceholder("What's this list about? Help others understand your curation...").fill(
+  await page.getByLabel("List name").fill("Late-night coffee spots");
+  await page.getByLabel("Description").fill(
     "Reliable places that still serve good coffee after regular work hours."
   );
   await page.getByRole("button", { name: "Create List" }).click();
