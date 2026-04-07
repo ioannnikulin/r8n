@@ -1,6 +1,6 @@
 import { test, expect } from "playwright/test";
 
-test.describe("GDPR / Users API", () => {
+test.describe("GDPR / Export API", () => {
   const GDPR_EXPORT_PATH = "/users/export";
 
   test("should return 401 Unauthorized when no token is provided", async ({ request }) => {
