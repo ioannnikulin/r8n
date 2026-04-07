@@ -13,9 +13,9 @@ class OpinionFacade(
     private val opinionService: OpinionService,
     private val usersInternalApi: UsersInternalApi,
 ) {
-    fun getOpinionDto(opinionId: UUID): OpinionDto = opinionService.getOpinion(opinionId).toDto()
+    fun getOpinion(opinionId: UUID): OpinionDto = opinionService.getOpinion(opinionId).toDto()
 
-    fun getOpinionForDto(subjectId: UUID): OpinionDto = opinionService.getOpinionFor(subjectId).toDto()
+    fun getOpinionFor(subjectId: UUID): OpinionDto = opinionService.getOpinionFor(subjectId).toDto()
 
     private fun Opinion.toDto() =
         OpinionDto(
