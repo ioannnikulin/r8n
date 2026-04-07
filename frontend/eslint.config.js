@@ -24,7 +24,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["e2e/**/*.{ts,tsx}"],
+    files: ["e2e/ui/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",

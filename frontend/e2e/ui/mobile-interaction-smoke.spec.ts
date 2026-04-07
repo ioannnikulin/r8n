@@ -1,4 +1,4 @@
-import { expect, test } from "../playwright-fixture";
+import { expect, test } from "../../playwright-fixture";
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 

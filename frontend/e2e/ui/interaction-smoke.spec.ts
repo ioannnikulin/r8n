@@ -1,4 +1,4 @@
-import { expect, test } from "../playwright-fixture";
+import { expect, test } from "../../playwright-fixture";
 
 const waitForUiToSettle = async (page: Parameters<typeof test>[0]["page"]) => {
   await page.waitForTimeout(250);
