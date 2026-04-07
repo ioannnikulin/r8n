@@ -25,7 +25,7 @@ class OpinionController(
     ): OpinionDto {
         val auth = SecurityContextHolder.getContext().authentication ?: throw IllegalStateException("Not authenticated")
         val userId = UUID.fromString(auth.name)
-        return opinionFacade.createOpinionDto(userId, subjectId, subjective, objective, mark)
+        return opinionFacade.createOpinion(userId, subjectId, subjective, objective, mark)
     }
 
     override fun updateOpinion(

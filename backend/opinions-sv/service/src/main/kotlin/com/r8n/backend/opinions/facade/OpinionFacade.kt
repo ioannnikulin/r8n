@@ -17,7 +17,7 @@ class OpinionFacade(
 
     fun getOpinionFor(subjectId: UUID): OpinionDto = opinionService.getOpinionFor(subjectId).toDto()
 
-    fun createOpinionDto(
+    fun createOpinion(
         userId: UUID,
         subjectId: UUID,
         subjective: List<String>,
