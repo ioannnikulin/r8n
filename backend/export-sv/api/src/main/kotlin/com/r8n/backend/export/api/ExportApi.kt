@@ -9,13 +9,18 @@ import org.springframework.web.bind.annotation.PostMapping
 import java.util.UUID
 
 interface ExportApi {
-
     @PostMapping("/export/users/{userId}/start")
-    fun startGeneratingExportFor(@PathVariable("userId") userId: UUID): ResponseEntity<Void>
+    fun startGeneratingExportFor(
+        @PathVariable("userId") userId: UUID,
+    ): ResponseEntity<Void>
 
     @GetMapping("/export/users/{userId}/status")
-    fun checkIfDataIsReady(@PathVariable("userId") userId: UUID): ExportStateDto
+    fun checkIfDataIsReady(
+        @PathVariable("userId") userId: UUID,
+    ): ExportStateDto
 
     @GetMapping("/export/users/{userId}/download")
-    fun downloadData(@PathVariable("userId") userId: UUID): UserCompleteDataDto
+    fun downloadData(
+        @PathVariable("userId") userId: UUID,
+    ): UserCompleteDataDto
 }

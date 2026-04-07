@@ -15,5 +15,5 @@ enum class ExportStatus {
     PENDING,
     IN_PROGRESS,
     COMPLETED,
-    FAILED
+    FAILED,
 }

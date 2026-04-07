@@ -13,19 +13,31 @@ class UsersRestClient(
     private val restClient: RestClient,
 ) : UsersInternalApi {
     override fun getUserName(id: UUID): String =
-        restClient.get().uri(NAME_PATH, id).retrieve().body(String::class.java)!!
+        restClient
+            .get()
+            .uri(NAME_PATH, id)
+            .retrieve()
+            .body(String::class.java)!!
 
     override fun getUser(id: UUID): UserDto =
-        restClient.get().uri("/users/{id}", id).retrieve().body(UserDto::class.java)!!
+        restClient
+            .get()
+            .uri("/users/{id}", id)
+            .retrieve()
+            .body(UserDto::class.java)!!
 
-    override fun getSessionsForUser(userId: UUID, page: PageRequestDto?): PageResponseDto<UserSessionDto> =
-        restClient.get()
+    override fun getSessionsForUser(
+        userId: UUID,
+        page: PageRequestDto?,
+    ): PageResponseDto<UserSessionDto> =
+        restClient
+            .get()
             .uri { uriBuilder ->
-                uriBuilder.path("/users/{userId}/sessions")
+                uriBuilder
+                    .path("/users/{userId}/sessions")
                     .queryParam("page", page?.page ?: 0)
                     .queryParam("size", page?.size ?: 20)
                     .build(userId)
-            }
-            .retrieve()
+            }.retrieve()
             .body(PageResponseDto::class.java) as PageResponseDto<UserSessionDto>
 }

@@ -11,13 +11,13 @@ import java.util.UUID
 
 @RestController
 class ExportController(
-    private val dataExportFacade: DataExportFacade
+    private val dataExportFacade: DataExportFacade,
 ) : ExportApi {
-
     override fun startGeneratingExportFor(userId: UUID): ResponseEntity<Void> {
         // Verify the user is accessing their own data
-        val auth = SecurityContextHolder.getContext().authentication
-            ?: throw IllegalStateException("Not authenticated")
+        val auth =
+            SecurityContextHolder.getContext().authentication
+                ?: throw IllegalStateException("Not authenticated")
         val authenticatedUserId = UUID.fromString(auth.name)
 
         if (authenticatedUserId != userId) {
@@ -30,8 +30,9 @@ class ExportController(
 
     override fun checkIfDataIsReady(userId: UUID): ExportStateDto {
         // Verify the user is accessing their own data
-        val auth = SecurityContextHolder.getContext().authentication
-            ?: throw IllegalStateException("Not authenticated")
+        val auth =
+            SecurityContextHolder.getContext().authentication
+                ?: throw IllegalStateException("Not authenticated")
         val authenticatedUserId = UUID.fromString(auth.name)
 
         if (authenticatedUserId != userId) {
@@ -43,8 +44,9 @@ class ExportController(
 
     override fun downloadData(userId: UUID): UserCompleteDataDto {
         // Verify the user is accessing their own data
-        val auth = SecurityContextHolder.getContext().authentication
-            ?: throw IllegalStateException("Not authenticated")
+        val auth =
+            SecurityContextHolder.getContext().authentication
+                ?: throw IllegalStateException("Not authenticated")
         val authenticatedUserId = UUID.fromString(auth.name)
 
         if (authenticatedUserId != userId) {

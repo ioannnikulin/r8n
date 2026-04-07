@@ -7,10 +7,12 @@ import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Import
 
 @SpringBootApplication
-@Import(value = [
-    UsersRestClientConfiguration::class,
-    MockRestClientConfiguration::class
-])
+@Import(
+    value = [
+        UsersRestClientConfiguration::class,
+        MockRestClientConfiguration::class,
+    ],
+)
 class ExportApplication
 
 fun main(args: Array<String>) {

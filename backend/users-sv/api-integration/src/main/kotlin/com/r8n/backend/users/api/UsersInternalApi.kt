@@ -19,11 +19,13 @@ interface UsersInternalApi {
     ): String
 
     @GetMapping("/users/{id}")
-    fun getUser(@PathVariable id: UUID): UserDto
+    fun getUser(
+        @PathVariable id: UUID,
+    ): UserDto
 
     @GetMapping("/users/{userId}/sessions")
     fun getSessionsForUser(
         @PathVariable userId: UUID,
-        page: PageRequestDto? = null
+        page: PageRequestDto? = null,
     ): PageResponseDto<UserSessionDto>
 }

@@ -1,18 +1,14 @@
 package com.r8n.backend.export.facade
 
 import com.r8n.backend.core.api.PageRequestDto
-import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.core.utils.toResponse
 import com.r8n.backend.export.api.dto.ConsentDto
 import com.r8n.backend.export.api.dto.PersonalIdentifiableInformationSectionDto
 import com.r8n.backend.export.api.dto.UserCompleteDataDto
-import com.r8n.backend.export.api.dto.UserStatusEnumDto
 import com.r8n.backend.mock.api.IncomingAccessRequestApi
 import com.r8n.backend.mock.api.MessagingApi
 import com.r8n.backend.mock.api.OutgoingAccessRequestApi
 import com.r8n.backend.mock.integration.api.OpinionListInternalApi
-import com.r8n.backend.users.api.dto.UserDto
-import com.r8n.backend.users.api.dto.UserSessionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.springframework.data.domain.PageImpl
 import org.springframework.stereotype.Service
@@ -42,7 +38,7 @@ class DataExportFacade(
         PENDING,
         IN_PROGRESS,
         COMPLETED,
-        FAILED
+        FAILED,
     }
 
     fun startExport(userId: UUID) {
@@ -62,21 +58,23 @@ class DataExportFacade(
     }
 
     fun getExportStatus(userId: UUID): com.r8n.backend.export.api.dto.ExportStateDto {
-        val job = exportJobs[userId]
-            ?: throw NoSuchElementException("No export job found for user $userId")
+        val job =
+            exportJobs[userId]
+                ?: throw NoSuchElementException("No export job found for user $userId")
 
         return com.r8n.backend.export.api.dto.ExportStateDto(
             userId = job.userId,
             status = job.status.toApiStatus(),
             createdAt = job.createdAt,
             completedAt = job.completedAt,
-            estimatedCompletionTime = job.completedAt ?: job.createdAt.plusSeconds(300) // 5 min estimate
+            estimatedCompletionTime = job.completedAt ?: job.createdAt.plusSeconds(300), // 5 min estimate
         )
     }
 
     fun getExportData(userId: UUID): UserCompleteDataDto {
-        val job = exportJobs[userId]
-            ?: throw NoSuchElementException("No export job found for user $userId")
+        val job =
+            exportJobs[userId]
+                ?: throw NoSuchElementException("No export job found for user $userId")
 
         if (job.status != ExportJobStatus.COMPLETED) {
             throw IllegalStateException("Export not completed yet. Status: ${job.status}")
@@ -95,11 +93,12 @@ class DataExportFacade(
             status = user.status,
             statusTimestamp = user.statusTimestamp,
             consents = PageImpl(user.consents.map { it.toExportDto() }).toResponse(),
-            personalIdentifiableInformation = PersonalIdentifiableInformationSectionDto(
-                name = user.name,
-                email = user.email,
-                sessions = sessions.map { it }.toResponse(),
-            ),
+            personalIdentifiableInformation =
+                PersonalIdentifiableInformationSectionDto(
+                    name = user.name,
+                    email = user.email,
+                    sessions = sessions.map { it }.toResponse(),
+                ),
             opinions = opinionClient.getMineFull(PageRequestDto(0, -1)),
             outgoingRequests = outgoingAccessRequestClient.get(null, null, null, PageRequestDto(0, -1)),
             incomingRequests = incomingAccessRequestClient.get(null, null, null, PageRequestDto(0, -1)),
@@ -107,45 +106,51 @@ class DataExportFacade(
         )
     }
 
-    private fun ExportJobStatus.toApiStatus(): com.r8n.backend.export.api.dto.ExportStatus {
-        return when (this) {
+    private fun ExportJobStatus.toApiStatus(): com.r8n.backend.export.api.dto.ExportStatus =
+        when (this) {
             ExportJobStatus.PENDING -> com.r8n.backend.export.api.dto.ExportStatus.PENDING
             ExportJobStatus.IN_PROGRESS -> com.r8n.backend.export.api.dto.ExportStatus.IN_PROGRESS
             ExportJobStatus.COMPLETED -> com.r8n.backend.export.api.dto.ExportStatus.COMPLETED
             ExportJobStatus.FAILED -> com.r8n.backend.export.api.dto.ExportStatus.FAILED
         }
-    }
 
-    private fun com.r8n.backend.users.api.dto.ConsentDto.toExportDto(): ConsentDto {
-        return ConsentDto(
+    private fun com.r8n.backend.users.api.dto.ConsentDto.toExportDto(): ConsentDto =
+        ConsentDto(
             type = this.type,
             accepted = this.accepted,
-            session = this.session
+            session = this.session,
         )
-    }
 
-    private fun updateExportStatus(userId: UUID, status: ExportJobStatus) {
+    private fun updateExportStatus(
+        userId: UUID,
+        status: ExportJobStatus,
+    ) {
         exportJobs[userId]?.let { job ->
             exportJobs[userId] = job.copy(status = status)
         }
     }
 
-    private fun completeExport(userId: UUID, data: UserCompleteDataDto) {
+    private fun completeExport(
+        userId: UUID,
+        data: UserCompleteDataDto,
+    ) {
         exportJobs[userId]?.let { job ->
-            exportJobs[userId] = job.copy(
-                status = ExportJobStatus.COMPLETED,
-                completedAt = Instant.now(),
-                result = data
-            )
+            exportJobs[userId] =
+                job.copy(
+                    status = ExportJobStatus.COMPLETED,
+                    completedAt = Instant.now(),
+                    result = data,
+                )
         }
     }
 
     private fun failExport(userId: UUID) {
         exportJobs[userId]?.let { job ->
-            exportJobs[userId] = job.copy(
-                status = ExportJobStatus.FAILED,
-                completedAt = Instant.now()
-            )
+            exportJobs[userId] =
+                job.copy(
+                    status = ExportJobStatus.FAILED,
+                    completedAt = Instant.now(),
+                )
         }
     }
 }
