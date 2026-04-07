@@ -1,7 +1,6 @@
 package com.r8n.backend.opinions.facade
 
-import com.r8n.backend.mock.integration.UserClient
-import com.r8n.backend.opinions.api.dto.opinion.OpinionDto
+import com.r8n.backend.opinions.api.dto.OpinionDto
 import com.r8n.backend.opinions.domain.Opinion
 import com.r8n.backend.opinions.domain.toDto
 import com.r8n.backend.opinions.service.OpinionService
@@ -14,26 +13,23 @@ class OpinionFacade(
     private val opinionService: OpinionService,
     private val usersInternalApi: UsersInternalApi,
 ) {
-    fun getOpinionDto(opinionId: UUID): OpinionDto {
-        return opinionService.getOpinion(opinionId).toDto()
-    }
+    fun getOpinionDto(opinionId: UUID): OpinionDto = opinionService.getOpinion(opinionId).toDto()
 
-    fun getOpinionForDto(subjectId: UUID): OpinionDto {
-        return opinionService.getOpinionFor(subjectId).toDto()
-    }
+    fun getOpinionForDto(subjectId: UUID): OpinionDto = opinionService.getOpinionFor(subjectId).toDto()
 
-    private fun Opinion.toDto() = OpinionDto(
-        id,
-        owner,
-        usersInternalApi.getUserName(owner),
-        subject,
-        subjectName,
-        subjective,
-        objective,
-        mark,
-        componentSection.componentMark,
-        componentSection.components.map { it.toDto() }.toList(),
-        status.toDto(),
-        timestamp,
-    )
+    private fun Opinion.toDto() =
+        OpinionDto(
+            id,
+            owner,
+            usersInternalApi.getUserName(owner),
+            subject,
+            subjectName,
+            subjective,
+            objective,
+            mark,
+            componentSection.componentMark,
+            componentSection.components.map { it.toDto() }.toList(),
+            status.toDto(),
+            timestamp,
+        )
 }
