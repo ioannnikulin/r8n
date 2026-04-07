@@ -1,9 +1,12 @@
-package com.r8n.backend.users.api.dto
+package com.r8n.backend.export.api.dto
 
 import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.mock.api.dto.SupportThreadDto
 import com.r8n.backend.mock.api.dto.access.AccessRequestDto
 import com.r8n.backend.mock.api.dto.list.OpinionListDto
+import com.r8n.backend.users.api.dto.ConsentDto
+import com.r8n.backend.users.api.dto.PersonalIdentifiableInformationSectionDto
+import com.r8n.backend.users.api.dto.UserStatusEnumDto
 import java.time.Instant
 import java.util.UUID
 
@@ -18,10 +21,3 @@ data class UserCompleteDataDto(
     val incomingRequests: PageResponseDto<AccessRequestDto>,
     val messages: PageResponseDto<SupportThreadDto>,
 )
-
-enum class UserStatusEnumDto {
-    ACTIVE,
-    SUSPENDED,
-    DELETION_PENDING,
-    DELETED,
-}
