@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestParam
 import java.util.UUID
 
 interface OpinionApi {
@@ -21,9 +22,13 @@ interface OpinionApi {
 
     @PostMapping("/opinions")
     fun createOpinion(
+        @RequestParam(required = true)
         subjectId: UUID,
+        @RequestParam(required = false)
         subjective: List<String>,
+        @RequestParam(required = false)
         objective: List<String>,
+        @RequestParam(required = false)
         mark: Double?,
     ): OpinionDto
 

@@ -44,6 +44,9 @@ import java.util.UUID
 @Import(TestObjectMapperConfiguration::class)
 class OpinionsIntegrationTests {
     private companion object {
+        val CURRENT_USER_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000000")
+        const val CURRENT_USER_NAME = "username"
+
         @Container
         @ServiceConnection
         val postgres: PostgreSQLContainer =
@@ -67,6 +70,8 @@ class OpinionsIntegrationTests {
     fun setUp() {
         whenever(usersInternalApi.getUserName(eq(bernardReferent.id)))
             .thenReturn(bernardReferent.name)
+        whenever(usersInternalApi.getUserName(eq(CURRENT_USER_ID)))
+            .thenReturn(CURRENT_USER_NAME)
     }
 
     @Test
@@ -186,8 +191,8 @@ class OpinionsIntegrationTests {
                 .andReturn()
 
         val actual: OpinionDto = objectMapper.readValue(result.response.contentAsString)
-        assertEquals(UUID.fromString("10101010-1010-1010-1010-101010101010"), actual.owner)
-        assertEquals(bernardReferent.name, actual.ownerName)
+        assertEquals(CURRENT_USER_ID, actual.owner)
+        assertEquals(CURRENT_USER_NAME, actual.ownerName)
         assertEquals(UUID.fromString(subjectId), actual.subject)
         assertEquals(cappuccino1G.name, actual.subjectName)
         assertEquals(listOf("new subjective"), actual.subjective)

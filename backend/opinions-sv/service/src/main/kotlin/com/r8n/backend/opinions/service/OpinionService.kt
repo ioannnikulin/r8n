@@ -32,6 +32,7 @@ class OpinionService(
 
     @Transactional
     fun createOpinion(
+        ownerId: UUID,
         subjectId: UUID,
         subjective: List<String>,
         objective: List<String>,
@@ -40,7 +41,7 @@ class OpinionService(
         val opinion =
             opinionRepository.save(
                 OpinionPersistence(
-                    owner = STUB_OWNER_ID,
+                    owner = ownerId,
                     subject = subjectId,
                     mark = mark,
                     status = OpinionStatusEnum.DRAFT,
@@ -64,8 +65,4 @@ class OpinionService(
             opinion.status,
             opinion.timestamp,
         )
-
-    private companion object {
-        val STUB_OWNER_ID: UUID = UUID.fromString("10101010-1010-1010-1010-101010101010")
-    }
 }
