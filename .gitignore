@@ -1,4 +1,5 @@
 .gradle
+.gradle-tmp
 build
 .idea
 *.log
