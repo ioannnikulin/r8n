@@ -64,3 +64,11 @@ INSERT INTO users.users (id, status, status_timestamp)
 VALUES ('10101010-1010-1010-1010-101010101010', 'ACTIVE', '2024-01-01T12:00:00Z');
 INSERT INTO users.pii (user_id, name, email, phone)
 VALUES ('10101010-1010-1010-1010-101010101010', 'coffee expert Bernard', 'bernard@coffee.com', '123-456-7890');
+
+--changeset junie:V4_add_password_hash
+ALTER TABLE users.users ADD COLUMN password_hash VARCHAR(255);
+
+--changeset junie:V5_set_default_passwords context:local,test
+-- password is '1234' hashed with BCrypt
+UPDATE users.users SET password_hash = '$2a$10$f3pE67YFqJz6Yy7p0vW2ueZ9u0Yk4H9/fS7M8p2k5hWz/96K0V/q' WHERE id = '00000000-0000-0000-0000-000000000000';
+UPDATE users.users SET password_hash = '$2a$10$f3pE67YFqJz6Yy7p0vW2ueZ9u0Yk4H9/fS7M8p2k5hWz/96K0V/q' WHERE id = '10101010-1010-1010-1010-101010101010';

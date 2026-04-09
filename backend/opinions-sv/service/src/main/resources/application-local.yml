@@ -21,3 +21,7 @@ spring:
 services:
   users:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
+r8n:
+  security:
+    jwt:
+      public-key: ${JWT_PUBLIC_KEY}
