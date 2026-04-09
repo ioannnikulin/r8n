@@ -10,4 +10,6 @@ interface OpinionNoteRepository : JpaRepository<OpinionNotePersistence, UUID> {
         opinionId: UUID,
         type: OpinionNoteTypeEnum,
     ): List<OpinionNotePersistence>
+
+    fun deleteAllByOpinionId(opinionId: UUID)
 }

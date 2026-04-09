@@ -23,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.junit.jupiter.Container
@@ -233,6 +234,46 @@ class OpinionsIntegrationTests {
         assertEquals(listOf("new subjective"), actual.subjective)
         assertEquals(listOf("new objective"), actual.objective)
         assertEquals(4.5, actual.mark)
+        assertEquals(OpinionStatusEnumDto.DRAFT, actual.status)
+    }
+
+    @Test
+    @WithMockUser
+    fun `update opinion works`() {
+        val createResult =
+            mockMvc
+                .perform(
+                    post("/opinions")
+                        .queryParam("subjectId", "15151515-1515-1515-1515-151515151515")
+                        .queryParam("subjective", "to be replaced subjective")
+                        .queryParam("objective", "to be replaced objective")
+                        .queryParam("mark", "2.10")
+                        .header("Authorization", "Bearer stub-access-token-123"),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val created: OpinionDto = objectMapper.readValue(createResult.response.contentAsString)
+
+        val updateResult =
+            mockMvc
+                .perform(
+                    patch("/opinions/${created.id}")
+                        .queryParam("subjective", "updated subjective")
+                        .queryParam("objective", "updated objective")
+                        .queryParam("mark", "4.90")
+                        .header("Authorization", "Bearer stub-access-token-123"),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val actual: OpinionDto = objectMapper.readValue(updateResult.response.contentAsString)
+        assertEquals(created.id, actual.id)
+        assertEquals(CURRENT_USER_ID, actual.owner)
+        assertEquals(CURRENT_USER_NAME, actual.ownerName)
+        assertEquals(UUID.fromString("15151515-1515-1515-1515-151515151515"), actual.subject)
+        assertEquals(cappuccino1G.name, actual.subjectName)
+        assertEquals(listOf("updated subjective"), actual.subjective)
+        assertEquals(listOf("updated objective"), actual.objective)
+        assertEquals(4.9, actual.mark)
         assertEquals(OpinionStatusEnumDto.DRAFT, actual.status)
     }
 }

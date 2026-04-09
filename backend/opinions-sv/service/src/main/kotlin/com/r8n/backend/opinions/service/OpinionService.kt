@@ -52,6 +52,25 @@ class OpinionService(
         return opinion.toDomain()
     }
 
+    @Transactional
+    fun updateOpinion(
+        opinionId: UUID,
+        subjective: List<String>,
+        objective: List<String>,
+        mark: Double?,
+    ): Opinion {
+        val opinion =
+            opinionRepository
+                .findById(
+                    opinionId,
+                ).orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND) }
+        opinion.mark = mark
+        opinion.timestamp = Instant.now()
+        val savedOpinion = opinionRepository.save(opinion)
+        noteService.replace(savedOpinion.id!!, subjective, objective)
+        return savedOpinion.toDomain()
+    }
+
     private fun OpinionPersistence.toDomain(): Opinion =
         Opinion(
             id!!,

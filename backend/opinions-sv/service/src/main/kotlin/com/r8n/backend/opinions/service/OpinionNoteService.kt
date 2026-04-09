@@ -36,4 +36,13 @@ class OpinionNoteService(
             }
         opinionNoteRepository.saveAll(notes)
     }
+
+    fun replace(
+        id: UUID,
+        subjective: List<String>,
+        objective: List<String>,
+    ) {
+        opinionNoteRepository.deleteAllByOpinionId(id)
+        create(id, subjective, objective)
+    }
 }

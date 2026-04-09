@@ -25,6 +25,13 @@ class OpinionFacade(
         mark: Double?,
     ): OpinionDto = opinionService.createOpinion(userId, subjectId, subjective, objective, mark).toDto()
 
+    fun updateOpinion(
+        opinionId: UUID,
+        subjective: List<String>,
+        objective: List<String>,
+        mark: Double?,
+    ): OpinionDto = opinionService.updateOpinion(opinionId, subjective, objective, mark).toDto()
+
     private fun Opinion.toDto() =
         OpinionDto(
             id,

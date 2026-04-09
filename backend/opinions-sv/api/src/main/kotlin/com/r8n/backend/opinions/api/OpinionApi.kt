@@ -35,8 +35,11 @@ interface OpinionApi {
     @PatchMapping("/opinions/{opinionId}")
     fun updateOpinion(
         @PathVariable opinionId: UUID,
+        @RequestParam(required = false)
         subjective: List<String>,
+        @RequestParam(required = false)
         objective: List<String>,
+        @RequestParam(required = false)
         mark: Double?,
     ): OpinionDto
 
