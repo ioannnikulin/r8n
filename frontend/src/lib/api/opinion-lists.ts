@@ -70,13 +70,13 @@ export interface SearchOpinionListsRequestDto extends AuthorizedRequestDto {
 }
 
 export interface SyncOpinionListsRequestDto extends AuthorizedRequestDto {
-  addedList: Uuid;
-  existingList: Uuid;
+  addedListId: Uuid;
+  existingListId: Uuid;
 }
 
 export interface UnsyncOpinionListsRequestDto extends AuthorizedRequestDto {
-  existingList: Uuid;
-  removedList: Uuid;
+  existingListId: Uuid;
+  removedListId: Uuid;
 }
 
 export interface GetMyOpinionListsRequestDto extends AuthorizedRequestDto {
@@ -89,7 +89,7 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
       request: GetMyOpinionListsRequestDto,
     ): Promise<PageResponseDto<OpinionListSummaryDto>> {
       return client.get<PageResponseDto<OpinionListSummaryDto>>(
-        "/opinionLists/mine",
+        "/opinion-lists/mine",
         {
           headers: createAuthorizationHeaders(request.accessToken),
           query: createPageQuery(request.pageable),
@@ -100,38 +100,33 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
     getSummary(
       request: GetOpinionListSummaryRequestDto,
     ): Promise<OpinionListSummaryDto> {
-      return client.get<OpinionListSummaryDto>("/opinionLists/summary", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          listId: request.listId,
+      return client.get<OpinionListSummaryDto>(
+        `/opinion-lists/${request.listId}/summary`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
         },
-      });
+      );
     },
 
     getById(request: GetOpinionListRequestDto): Promise<OpinionListDto> {
-      return client.get<OpinionListDto>("/opinionLists/get", {
+      return client.get<OpinionListDto>(`/opinion-lists/${request.listId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          listId: request.listId,
-        },
       });
     },
 
     linkOpinion(request: LinkOpinionToListRequestDto): Promise<OpinionListDto> {
-      return client.post<OpinionListDto>("/opinionLists/linkOpinion", {
+      return client.post<OpinionListDto>(`/opinion-lists/${request.listId}/link`, {
         headers: createAuthorizationHeaders(request.accessToken),
         query: {
-          listId: request.listId,
           opinionId: request.opinionId,
         },
       });
     },
 
     rename(request: RenameOpinionListRequestDto): Promise<OpinionListDto> {
-      return client.patch<OpinionListDto>("/opinionLists/rename", {
+      return client.patch<OpinionListDto>(`/opinion-lists/${request.listId}/rename`, {
         headers: createAuthorizationHeaders(request.accessToken),
         query: {
-          listId: request.listId,
           name: request.name,
         },
       });
@@ -148,7 +143,7 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
       };
 
       return client.get<PageResponseDto<OpinionListSummaryDto>>(
-        "/opinionLists/search",
+        "/opinion-lists/search",
         {
           headers: createAuthorizationHeaders(request.accessToken),
           query,
@@ -159,45 +154,53 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
     setPrivacy(
       request: SetOpinionListPrivacyRequestDto,
     ): Promise<OpinionListDto> {
-      return client.patch<OpinionListDto>("/opinionLists/setPrivacy", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          listId: request.listId,
-          privacy: request.privacy,
+      return client.patch<OpinionListDto>(
+        `/opinion-lists/${request.listId}/set-privacy`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
+          query: {
+            privacy: request.privacy,
+          },
         },
-      });
+      );
     },
 
     sync(request: SyncOpinionListsRequestDto): Promise<OpinionListDto> {
-      return client.post<OpinionListDto>("/opinionLists/sync", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          addedList: request.addedList,
-          existingList: request.existingList,
+      return client.post<OpinionListDto>(
+        `/opinion-lists/${request.existingListId}/sync`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
+          query: {
+            addedListId: request.addedListId,
+          },
         },
-      });
+      );
     },
 
     unlinkOpinion(
       request: UnlinkOpinionFromListRequestDto,
     ): Promise<OpinionListDto> {
-      return client.patch<OpinionListDto>("/opinionLists/unlinkOpinion", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          listId: request.listId,
-          opinionId: request.opinionId,
+      return client.patch<OpinionListDto>(
+        `/opinion-lists/${request.listId}/unlink`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
+          query: {
+            opinionId: request.opinionId,
+          },
         },
-      });
+      );
     },
 
     unsync(request: UnsyncOpinionListsRequestDto): Promise<OpinionListDto> {
-      return client.post<OpinionListDto>("/opinionLists/unsync", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          existingList: request.existingList,
-          removedList: request.removedList,
+      return client.post<OpinionListDto>(
+        `/opinion-lists/${request.existingListId}/unsync`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
+          query: {
+            removedListId: request.removedListId,
+          },
         },
-      });
+      );
     },
   };
 }

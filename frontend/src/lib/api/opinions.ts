@@ -90,17 +90,16 @@ export function createOpinionsApi(client: HttpClient = httpClient) {
     adjustComponentWeight(
       request: AdjustOpinionComponentWeightRequestDto,
     ): Promise<OpinionDto> {
-      return client.patch<OpinionDto>("/opinions/adjustComponentWeight", {
+      return client.patch<OpinionDto>(`/opinions/adjustWeight/${request.linkId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
         query: {
-          linkId: request.linkId,
           weight: request.weight,
         },
       });
     },
 
     create(request: CreateOpinionRequestDto): Promise<OpinionDto> {
-      return client.post<OpinionDto>("/opinions/add", {
+      return client.post<OpinionDto>("/opinions", {
         headers: createAuthorizationHeaders(request.accessToken),
         query: {
           mark: request.mark,
@@ -112,31 +111,22 @@ export function createOpinionsApi(client: HttpClient = httpClient) {
     },
 
     delete(request: DeleteOpinionRequestDto): Promise<void> {
-      return client.delete<void>("/opinions/delete", {
+      return client.delete<void>(`/opinions/${request.opinionId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          opinionId: request.opinionId,
-        },
       });
     },
 
     getById(request: GetOpinionByIdRequestDto): Promise<OpinionDto> {
-      return client.get<OpinionDto>("/opinions/id", {
+      return client.get<OpinionDto>(`/opinions/${request.id}`, {
         headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          id: request.id,
-        },
       });
     },
 
     getForSubject(
       request: GetOpinionForSubjectRequestDto,
     ): Promise<OpinionDto> {
-      return client.get<OpinionDto>("/opinions/for", {
+      return client.get<OpinionDto>(`/opinions/for/${request.subjectId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          subjectId: request.subjectId,
-        },
       });
     },
 
@@ -156,21 +146,17 @@ export function createOpinionsApi(client: HttpClient = httpClient) {
     unlinkComponent(
       request: UnlinkOpinionComponentRequestDto,
     ): Promise<OpinionDto> {
-      return client.delete<OpinionDto>("/opinions/unlink", {
+      return client.delete<OpinionDto>(`/opinions/unlink/${request.linkId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          linkId: request.linkId,
-        },
       });
     },
 
     update(request: UpdateOpinionRequestDto): Promise<OpinionDto> {
-      return client.patch<OpinionDto>("/opinions/update", {
+      return client.patch<OpinionDto>(`/opinions/${request.opinionId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
         query: {
           mark: request.mark,
           objective: request.objective,
-          opinionId: request.opinionId,
           subjective: request.subjective,
         },
       });

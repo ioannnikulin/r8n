@@ -28,7 +28,7 @@ export interface GetSelectorsForUrlRequestDto extends AuthorizedRequestDto {
 }
 
 export interface GetSelectorsForSubjectRequestDto extends AuthorizedRequestDto {
-  id: Uuid;
+  subjectId: Uuid;
   pageable: PageRequestDto;
 }
 
@@ -38,7 +38,7 @@ export interface SuggestSelectorRequestDto extends AuthorizedRequestDto {
 }
 
 export interface DisagreeWithSelectorRequestDto extends AuthorizedRequestDto {
-  comment?: string;
+  comment: string;
   selectorId: Uuid;
 }
 
@@ -47,27 +47,29 @@ export function createSelectorsApi(client: HttpClient = httpClient) {
     disagree(
       request: DisagreeWithSelectorRequestDto,
     ): Promise<SupportThreadDto> {
-      return client.patch<SupportThreadDto>("/selectors/disagree", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          comment: request.comment,
-          selectorId: request.selectorId,
+      return client.post<SupportThreadDto>(
+        `/selectors/${request.selectorId}/disagree`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
+          query: {
+            comment: request.comment,
+          },
         },
-      });
+      );
     },
 
     getForSubject(
       request: GetSelectorsForSubjectRequestDto,
     ): Promise<PageResponseDto<SelectorDto>> {
-      const query: HttpQueryParams = {
-        ...createPageQuery(request.pageable),
-        id: request.id,
-      };
+      const query: HttpQueryParams = createPageQuery(request.pageable);
 
-      return client.get<PageResponseDto<SelectorDto>>("/selectors/forSubject", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query,
-      });
+      return client.get<PageResponseDto<SelectorDto>>(
+        `/selectors/for-subject/${request.subjectId}`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
+          query,
+        },
+      );
     },
 
     getForUrl(
@@ -78,18 +80,17 @@ export function createSelectorsApi(client: HttpClient = httpClient) {
         url: request.url,
       };
 
-      return client.get<PageResponseDto<SelectorDto>>("/selectors/forUrl", {
+      return client.get<PageResponseDto<SelectorDto>>("/selectors/for-url", {
         headers: createAuthorizationHeaders(request.accessToken),
         query,
       });
     },
 
     suggest(request: SuggestSelectorRequestDto): Promise<SelectorDto> {
-      return client.post<SelectorDto>("/selectors/suggest", {
+      return client.post<SelectorDto>(`/selectors/for-subject/${request.subjectId}`, {
         headers: createAuthorizationHeaders(request.accessToken),
         query: {
           selector: request.selector,
-          subjectId: request.subjectId,
         },
       });
     },

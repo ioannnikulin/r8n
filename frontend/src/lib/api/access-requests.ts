@@ -60,45 +60,45 @@ export function createAccessRequestsApi(client: HttpClient = httpClient) {
     acceptIncoming(
       request: AccessRequestActionRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.post<AccessRequestDto>("/accessRequests/incoming/accept", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          requestId: request.requestId,
+      return client.post<AccessRequestDto>(
+        `/access-requests/incoming/${request.requestId}/accept`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
         },
-      });
+      );
     },
 
     cancelOutgoing(
       request: AccessRequestActionRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.post<AccessRequestDto>("/accessRequests/outgoing/cancel", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          requestId: request.requestId,
+      return client.get<AccessRequestDto>(
+        `/access-requests/outgoing/cancel/${request.requestId}`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
         },
-      });
+      );
     },
 
     createOutgoing(
       request: CreateOutgoingAccessRequestRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.post<AccessRequestDto>("/accessRequests/outgoing/create", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          listId: request.listId,
+      return client.get<AccessRequestDto>(
+        `/access-requests/outgoing/create/${request.listId}`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
         },
-      });
+      );
     },
 
     declineIncoming(
       request: AccessRequestActionRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.post<AccessRequestDto>("/accessRequests/incoming/decline", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          requestId: request.requestId,
+      return client.post<AccessRequestDto>(
+        `/access-requests/incoming/${request.requestId}/decline`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
         },
-      });
+      );
     },
 
     getIncoming(
@@ -112,7 +112,7 @@ export function createAccessRequestsApi(client: HttpClient = httpClient) {
       };
 
       return client.get<PageResponseDto<AccessRequestDto>>(
-        "/accessRequests/incoming/get",
+        "/access-requests/incoming",
         {
           headers: createAuthorizationHeaders(request.accessToken),
           query,
@@ -131,7 +131,7 @@ export function createAccessRequestsApi(client: HttpClient = httpClient) {
       };
 
       return client.get<PageResponseDto<AccessRequestDto>>(
-        "/accessRequests/outgoing/get",
+        "/access-requests/outgoing",
         {
           headers: createAuthorizationHeaders(request.accessToken),
           query,
@@ -142,12 +142,12 @@ export function createAccessRequestsApi(client: HttpClient = httpClient) {
     hideIncoming(
       request: AccessRequestActionRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.post<AccessRequestDto>("/accessRequests/incoming/hide", {
-        headers: createAuthorizationHeaders(request.accessToken),
-        query: {
-          requestId: request.requestId,
+      return client.post<AccessRequestDto>(
+        `/access-requests/incoming/${request.requestId}/hide`,
+        {
+          headers: createAuthorizationHeaders(request.accessToken),
         },
-      });
+      );
     },
   };
 }
