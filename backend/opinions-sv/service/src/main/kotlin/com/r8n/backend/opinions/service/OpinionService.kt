@@ -20,14 +20,14 @@ class OpinionService(
 ) {
     fun getOpinion(id: UUID): Opinion {
         val opinion = opinionRepository.findById(id).orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND) }
-        return toDomain(opinion)
+        return opinion.toDomain()
     }
 
     fun getOpinionFor(subjectId: UUID): Opinion {
         val opinion =
             opinionRepository.findFirstBySubjectOrderByTimestampDesc(subjectId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        return toDomain(opinion)
+        return opinion.toDomain()
     }
 
     @Transactional
@@ -49,20 +49,20 @@ class OpinionService(
                 ),
             )
         noteService.create(opinion.id!!, subjective, objective)
-        return toDomain(opinion)
+        return opinion.toDomain()
     }
 
-    private fun toDomain(opinion: OpinionPersistence): Opinion =
+    private fun OpinionPersistence.toDomain(): Opinion =
         Opinion(
-            opinion.id!!,
-            opinion.owner,
-            opinion.subject,
-            subjectService.getSubjectName(opinion.subject),
-            noteService.getSubjective(opinion.id!!),
-            noteService.getObjective(opinion.id!!),
-            opinion.mark,
-            componentService.getComponentSection(opinion.id!!),
-            opinion.status,
-            opinion.timestamp,
+            id!!,
+            owner,
+            subject,
+            subjectService.getSubjectName(subject),
+            noteService.getSubjective(id!!),
+            noteService.getObjective(id!!),
+            mark,
+            componentService.getComponentSection(id!!),
+            status,
+            timestamp,
         )
 }
