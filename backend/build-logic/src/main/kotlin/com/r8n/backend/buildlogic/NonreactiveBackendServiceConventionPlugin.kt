@@ -19,6 +19,7 @@ class NonreactiveBackendServiceConventionPlugin : Plugin<Project> {
 
             dependencies.apply {
                 add("implementation", project(":core:security"))
+                add("implementation", libs.findLibrary("spring-boot-starter-security").get())
                 add("implementation", libs.findLibrary("spring-boot-starter-web").get())
                 add("implementation", libs.findLibrary("spring-swagger").get())
                 add("testImplementation", libs.findLibrary("spring-boot-starter-webmvc-test").get())

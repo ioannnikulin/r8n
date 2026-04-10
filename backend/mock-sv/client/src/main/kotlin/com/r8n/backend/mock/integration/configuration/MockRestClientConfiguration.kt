@@ -27,11 +27,12 @@ class MockRestClientConfiguration {
     @Qualifier("mockRestBaseClient")
     fun mockRestBaseClient(
         @Value("\${services.mock.url}") baseUrl: String,
+        serviceTokenService: com.r8n.backend.security.ServiceTokenService,
     ): RestClient =
         RestClient
             .builder()
             .baseUrl(baseUrl)
-            .requestInterceptor(SecurityContextTokenInterceptor())
+            .requestInterceptor(SecurityContextTokenInterceptor(serviceTokenService))
             .build()
 
     @Bean

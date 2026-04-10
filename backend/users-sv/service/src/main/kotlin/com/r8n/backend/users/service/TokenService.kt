@@ -7,6 +7,7 @@ import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import com.r8n.backend.security.SecurityAutoConfiguration
+import com.r8n.backend.security.ServiceTokenService.Companion.decodePrivateKey
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.security.KeyFactory
@@ -60,17 +61,6 @@ class TokenService(
         val signedJWT = SignedJWT(JWSHeader(JWSAlgorithm.RS256), claimsSet)
         signedJWT.sign(signer)
         return signedJWT.serialize()
-    }
-
-    private fun decodePrivateKey(pem: String): PrivateKey {
-        val cleanPem = pem
-            .replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replace("\\s".toRegex(), "")
-        val encoded = Base64.getDecoder().decode(cleanPem)
-        val keySpec = PKCS8EncodedKeySpec(encoded)
-        val keyFactory = KeyFactory.getInstance("RSA")
-        return keyFactory.generatePrivate(keySpec)
     }
 
     fun getAccessTokenExpirationMillis(): Long {

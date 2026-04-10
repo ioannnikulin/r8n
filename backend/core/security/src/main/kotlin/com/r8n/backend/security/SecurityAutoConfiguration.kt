@@ -3,6 +3,7 @@ package com.r8n.backend.security
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.oauth2.jwt.JwtDecoder
@@ -17,6 +18,7 @@ import java.util.Base64
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 class SecurityAutoConfiguration {
     companion object {
         const val PUBLIC_KEY_PROPERTY = "r8n.security.jwt.public-key"
@@ -24,8 +26,18 @@ class SecurityAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    fun restSecurityInterceptor(): RestSecurityInterceptor {
-        return RestSecurityInterceptor()
+    fun serviceTokenService(
+        @org.springframework.beans.factory.annotation.Value("\${r8n.security.jwt.private-key:}") privateKeyPem: String,
+        @org.springframework.beans.factory.annotation.Value("\${r8n.security.jwt.issuer:r8n}") issuer: String,
+        @org.springframework.beans.factory.annotation.Value("\${spring.application.name:unknown-service}") serviceName: String,
+    ): ServiceTokenService {
+        return ServiceTokenService(privateKeyPem, issuer, serviceName)
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    fun restSecurityInterceptor(serviceTokenService: ServiceTokenService): RestSecurityInterceptor {
+        return RestSecurityInterceptor(serviceTokenService)
     }
 
     @Bean
@@ -76,9 +88,16 @@ class SecurityAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    fun filterChain(http: HttpSecurity, jwtDecoder: JwtDecoder, jwtAuthenticationConverter: JwtAuthenticationConverter): SecurityFilterChain {
+    fun maskingLoggingFilter(): MaskingLoggingFilter {
+        return MaskingLoggingFilter()
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    fun filterChain(http: HttpSecurity, jwtDecoder: JwtDecoder, jwtAuthenticationConverter: JwtAuthenticationConverter, maskingLoggingFilter: MaskingLoggingFilter): SecurityFilterChain {
         return http
             .csrf { it.disable() }
+            .addFilterBefore(maskingLoggingFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
             .authorizeHttpRequests {
                 it.requestMatchers("/auth/**").permitAll()
                     .anyRequest().authenticated()

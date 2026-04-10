@@ -7,7 +7,9 @@ import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 
-class RestSecurityInterceptor : ClientHttpRequestInterceptor {
+class RestSecurityInterceptor(
+    private val serviceTokenService: ServiceTokenService? = null
+) : ClientHttpRequestInterceptor {
     override fun intercept(
         request: HttpRequest,
         body: ByteArray,
@@ -16,6 +18,10 @@ class RestSecurityInterceptor : ClientHttpRequestInterceptor {
         val auth = SecurityContextHolder.getContext().authentication
         if (auth is JwtAuthenticationToken) {
             request.headers.add("Authorization", "Bearer ${auth.token.tokenValue}")
+        } else {
+            serviceTokenService?.generateServiceToken()?.let { token ->
+                request.headers.add("Authorization", "Bearer $token")
+            }
         }
         return execution.execute(request, body)
     }

@@ -20,6 +20,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.junit.jupiter.Container
@@ -93,5 +94,45 @@ class OpinionsIntegrationTests {
             )
 
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `delete opinion requires admin role`() {
+        val opinionId = UUID.randomUUID()
+
+        // No role - 403
+        mockMvc.perform(
+            delete("/opinions/$opinionId")
+                .with(jwt())
+        ).andExpect(status().isForbidden)
+
+        // User role - 403
+        mockMvc.perform(
+            delete("/opinions/$opinionId")
+                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")))
+        ).andExpect(status().isForbidden)
+
+        // Admin role - 200
+        mockMvc.perform(
+            delete("/opinions/$opinionId")
+                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")))
+        ).andExpect(status().isOk)
+    }
+
+    @Test
+    fun `service role can access but not delete if restricted`() {
+        val opinionId = UUID.randomUUID()
+
+        // Service role - 403 for delete (since it needs ADMIN)
+        mockMvc.perform(
+            delete("/opinions/$opinionId")
+                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SERVICE")))
+        ).andExpect(status().isForbidden)
+
+        // Service role - 200 for get (since it only needs authenticated)
+        mockMvc.perform(
+            get("/opinions/30000000-0000-0000-0000-000000000001")
+                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SERVICE")))
+        ).andExpect(status().isOk)
     }
 }

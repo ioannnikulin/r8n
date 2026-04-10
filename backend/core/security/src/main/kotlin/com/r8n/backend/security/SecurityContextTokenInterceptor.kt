@@ -5,22 +5,22 @@ import org.springframework.http.client.ClientHttpRequestExecution
 import org.springframework.http.client.ClientHttpRequestInterceptor
 import org.springframework.http.client.ClientHttpResponse
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.web.context.request.RequestContextHolder
-import org.springframework.web.context.request.ServletRequestAttributes
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 
-class SecurityContextTokenInterceptor : ClientHttpRequestInterceptor {
+class SecurityContextTokenInterceptor(
+    private val serviceTokenService: ServiceTokenService? = null
+) : ClientHttpRequestInterceptor {
     override fun intercept(
         request: HttpRequest,
         body: ByteArray,
         execution: ClientHttpRequestExecution,
     ): ClientHttpResponse {
         val auth = SecurityContextHolder.getContext().authentication
-        if (auth != null) {
-            val attributes = RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes
-            val originalRequest = attributes?.request
-            val authHeader = originalRequest?.getHeader("Authorization")
-            if (authHeader != null) {
-                request.headers.add("Authorization", authHeader)
+        if (auth is JwtAuthenticationToken) {
+            request.headers.add("Authorization", "Bearer ${auth.token.tokenValue}")
+        } else {
+            serviceTokenService?.generateServiceToken()?.let { token ->
+                request.headers.add("Authorization", "Bearer $token")
             }
         }
         return execution.execute(request, body)
