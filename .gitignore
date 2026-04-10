@@ -12,4 +12,6 @@ deployment/config/docker.local.env
 deployment/database/data
 deployment/*/logs/
 docker.secrets.env
+.kotlin
 *.txt
+.access_token

@@ -184,6 +184,25 @@ generate-jwt-keys-%: ## Generate RSA JWT keypair and update deployment/config/<e
 	chmod +x ./deployment/scripts/generate-jwt-keypair.sh
 	./deployment/scripts/generate-jwt-keypair.sh $*
 
+##@ Maintenance
+clean-logs: ## Remove deployment log files
+	find deployment -type f -name '*.log' -delete
+
+clean-artifacts: ## Remove deployment service JARs
+	@for svc in $(SERVICES); do \
+		rm -f "deployment/$$svc/app.jar"; \
+	done
+
+clean: clean-artifacts clean-logs frontend-clean ## Remove backend artifacts/logs and frontend cache
+	rm -f .access_token
+
+fclean: clean frontend-clean-all ## Remove clean plus frontend node_modules and certs
+
+re: fclean docker-build ## Full rebuild (clean + docker-build)
+
+##@ Local Backend
+local-run-all: $(addprefix local-run-,$(SERVICES)) ## Run all backend services locally
+
 ##@ Docker database
 docker-database-run: docker-database-create-data-folder ## Start only the database container
 	chmod a+x deployment/database/init/01_create_schemas.sh
@@ -230,26 +249,40 @@ $(addprefix local-stop-,$(SERVICES)): local-stop-%: ## Stop one local backend se
 frontend-dev: frontend-install ## Start Vite dev server
 	@bash -lc '$(FRONTEND_SHELL) NODE_EXTRA_CA_CERTS="$(FRONTEND_GATEWAY_CERT)" frontend_npm run dev'
 
+LOGIN_USER := test@test.test
+LOGIN_PASS := 1234
+
+get-token: ## Obtain a JWT token using login credentials
+	@$(LOAD_LOCAL_ENV) \
+	token=$$(curl -s -X POST "http://localhost:8080/auth/login" \
+		-H "Content-Type: application/json" \
+		-d '{"login": "$(LOGIN_USER)", "password": "$(LOGIN_PASS)"}' | \
+		grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4); \
+	if [ -z "$$token" ]; then \
+		echo "Failed to obtain token. Is the users-sv running?"; \
+		exit 1; \
+	fi; \
+	echo "$$token" > .access_token
+
 routed-request-opinion: ## HTTP gateway request to opinions (local)
-	curl "http://localhost:8080/opinions/30000000-0000-0000-0000-000000000001" -i -H "Authorization: Bearer stub-access-token-123"
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl "http://localhost:8080/opinions/30000000-0000-0000-0000-000000000001" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 routed-request-mock: ## HTTP gateway request to mock (local)
-	curl "http://localhost:8080/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer stub-access-token-123"
-
-frontend-install: frontend-check-node ## Install frontend dependencies
-	@bash -lc '$(FRONTEND_SHELL) frontend_npm ci'
-
-frontend-install-all: frontend-install ## Install deps and Playwright browsers
-	@bash -lc '$(FRONTEND_SHELL) frontend_npx playwright install'
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl "http://localhost:8080/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 direct-request-opinion: ## HTTP direct request to opinions (local)
-	curl "http://localhost:8081/opinions/30000000-0000-0000-0000-000000000001" -i -H "Authorization: Bearer stub-access-token-123"
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl "http://localhost:8081/opinions/30000000-0000-0000-0000-000000000001" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 direct-request-mock: ## HTTP direct request to mock (local)
-	curl "http://localhost:8090/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer stub-access-token-123"
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl "http://localhost:8090/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 routed-request-gdpr:
-	curl "http://localhost:8080/users/export" -i -H "Authorization: Bearer stub-access-token-123"
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl "http://localhost:8080/users/export" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 # frontend
 frontend-check-node: ## Check Node.js version (attempts nvm if too old)
@@ -284,11 +317,13 @@ frontend-cert-clean: ## Remove generated frontend certs
 	rm -rf deployment/certs/edge
 
 ##@ Smoke Tests
-https-routed-request-opinion: ## HTTPS gateway request to opinions service
-	curl --cacert deployment/certs/internal/gateway.crt "https://localhost:8080/opinions/30000000-0000-0000-0000-000000000001" -i -H "Authorization: Bearer stub-access-token-123"
+https-routed-request-opinion: ## HTTPS gateway request to opinions
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl --cacert deployment/certs/internal/gateway.crt "https://localhost:8080/opinions/30000000-0000-0000-0000-000000000001" -i -H "Authorization: Bearer $$(cat .access_token)"
 
-https-routed-request-mock: ## HTTPS gateway request to mock service
-	curl --cacert deployment/certs/internal/gateway.crt "https://localhost:8080/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer stub-access-token-123"
+https-routed-request-mock: ## HTTPS gateway request to mock
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl --cacert deployment/certs/internal/gateway.crt "https://localhost:8080/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 https-routed-request-gdpr: ## HTTPS gateway request to users service
 	curl --cacert deployment/certs/internal/gateway.crt "https://localhost:8080/users/export" -i -H "Authorization: Bearer stub-access-token-123"
