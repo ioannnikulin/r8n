@@ -6,16 +6,11 @@ import com.nimbusds.jose.JWSSigner
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import com.r8n.backend.security.SecurityAutoConfiguration
 import com.r8n.backend.security.ServiceTokenService.Companion.decodePrivateKey
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.security.KeyFactory
-import java.security.PrivateKey
-import java.security.spec.PKCS8EncodedKeySpec
 import java.time.Duration
 import java.time.Instant
-import java.util.Base64
 import java.util.Date
 import java.util.UUID
 
