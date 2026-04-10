@@ -17,3 +17,22 @@ spring:
 logging:
   level:
     root: ERROR
+
+services:
+  mock:
+    url: http://localhost:${server.port}
+  users:
+    url: http://localhost:8082
+r8n:
+  security:
+    jwt:
+      public-key: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqJQMN6JhbfWrf/5FOMzb
+        LLN8rur4d24l2ucMdFJCYy2IpV9qFONNi6vTkjbIlD+btr58btRUtTuMV/VS0Hw5
+        8b3Uhuu9BSTwgR6MDEkExH2btl1Em7HM07QPntIHHqWOTvPHM7FZXeO4+rHovqJG
+        lj+GSytspgY7iCQDsDfYbzPkZr5fyuA2DEMh/iGhjc4NNRJEMcJP9OiV0rajF3GT
+        NoaSYvCO503uwf4OXVvOTB55bZ1UO7Dv1jDgWJWMYYywdSAZ9XYMDB9IeSdplul+
+        bTbKa8ImmQP+ysdWX4C+bh7gTZXTWYcFpSUF2b84t/xrNuqlcZZweMSvIfZGsk4Z
+        MQIDAQAB
+        -----END PUBLIC KEY-----

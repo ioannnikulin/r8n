@@ -16,7 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
-import org.springframework.security.test.context.support.WithMockUser
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
@@ -67,16 +67,13 @@ class OpinionsIntegrationTests {
     }
 
     @Test
-    @WithMockUser
     fun `get opinion works`() {
         val requestedId = "30000000-0000-0000-0000-000000000001"
-        val result =
-            mockMvc
-                .perform(
-                    get("/opinions/$requestedId")
-                        .header("Authorization", "Bearer stub-access-token-123"),
-                ).andExpect(status().isOk)
-                .andReturn()
+        val result = mockMvc.perform(
+            get("/opinions/$requestedId")
+                .with(jwt())
+        )
+            .andExpect(status().isOk).andReturn()
 
         val actual: OpinionDto = objectMapper.readValue(result.response.contentAsString)
         val expected =
