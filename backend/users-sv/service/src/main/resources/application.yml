@@ -20,6 +20,8 @@ spring:
       mode: never
 services:
   mock:
-    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
-  users:
-    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
+    url: ${INTERSERVICE_PROTOCOL:http}://${SERVICES_MOCK_HOST:localhost}:${SERVICES_MOCK_PORT:8090}
+r8n:
+  security:
+    jwt:
+      public-key: ${JWT_PUBLIC_KEY}

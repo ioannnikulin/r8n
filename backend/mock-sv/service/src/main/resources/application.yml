@@ -8,3 +8,8 @@ server:
     key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD}
     key-store-type: ${SERVER_SSL_KEY_STORE_TYPE}
     key-alias: ${SERVER_SSL_KEY_ALIAS}
+r8n:
+  security:
+    jwt:
+      private-key: ${JWT_PRIVATE_KEY}
+      public-key: ${JWT_PUBLIC_KEY}
