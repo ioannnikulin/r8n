@@ -34,15 +34,17 @@ class ServiceTokenService(
 
     fun generateServiceToken(): String? {
         val s = signer ?: return null
-        
+
         val now = Instant.now()
-        val claimsSet = JWTClaimsSet.Builder()
-            .issuer(issuer)
-            .subject("service-$serviceName")
-            .claim("roles", listOf("SERVICE"))
-            .issueTime(Date.from(now))
-            .expirationTime(Date.from(now.plus(accessTokenExpiration)))
-            .build()
+        val claimsSet =
+            JWTClaimsSet
+                .Builder()
+                .issuer(issuer)
+                .subject("service-$serviceName")
+                .claim("roles", listOf("SERVICE"))
+                .issueTime(Date.from(now))
+                .expirationTime(Date.from(now.plus(accessTokenExpiration)))
+                .build()
 
         val signedJWT = SignedJWT(JWSHeader(JWSAlgorithm.RS256), claimsSet)
         signedJWT.sign(s)
@@ -51,10 +53,11 @@ class ServiceTokenService(
 
     companion object {
         fun decodePrivateKey(pem: String): PrivateKey {
-            val cleanPem = pem
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replace("\\s".toRegex(), "")
+            val cleanPem =
+                pem
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace("\\s".toRegex(), "")
             val encoded = Base64.getDecoder().decode(cleanPem)
             val keySpec = PKCS8EncodedKeySpec(encoded)
             val keyFactory = KeyFactory.getInstance("RSA")

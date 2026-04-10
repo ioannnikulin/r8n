@@ -8,11 +8,9 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 class AuthController(
-    private val authService: AuthService
+    private val authService: AuthService,
 ) : AuthApi {
-    override fun login(request: LoginRequestDto): AuthenticationTokenDto {
-        return authService.login(request)
-    }
+    override fun login(request: LoginRequestDto): AuthenticationTokenDto = authService.login(request)
 
     override fun logout() {
         authService.logout()

@@ -4,10 +4,10 @@ import com.r8n.backend.mock.stub.OpinionTestDataFactory
 import com.r8n.backend.opinions.api.OpinionApi
 import com.r8n.backend.opinions.api.dto.OpinionDto
 import com.r8n.backend.opinions.facade.OpinionFacade
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
-import org.springframework.security.access.prepost.PreAuthorize
 
 @RestController
 class OpinionController(

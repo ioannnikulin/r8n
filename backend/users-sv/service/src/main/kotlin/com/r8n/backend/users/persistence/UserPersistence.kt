@@ -26,7 +26,6 @@ class UserPersistence(
 //
     @Column(nullable = false)
     val statusTimestamp: Instant,
-    
     @Column(nullable = true)
     val passwordHash: String? = null,
 )

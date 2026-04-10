@@ -8,7 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 
 class RestSecurityInterceptor(
-    private val serviceTokenService: ServiceTokenService? = null
+    private val serviceTokenService: ServiceTokenService? = null,
 ) : ClientHttpRequestInterceptor {
     override fun intercept(
         request: HttpRequest,

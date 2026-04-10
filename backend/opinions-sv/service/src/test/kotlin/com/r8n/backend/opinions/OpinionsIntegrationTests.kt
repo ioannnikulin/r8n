@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
+import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -77,11 +78,13 @@ class OpinionsIntegrationTests {
     @Test
     fun `get opinion works`() {
         val requestedId = "30000000-0000-0000-0000-000000000001"
-        val result = mockMvc.perform(
-            get("/opinions/$requestedId")
-                .with(jwt())
-        )
-            .andExpect(status().isOk).andReturn()
+        val result =
+            mockMvc
+                .perform(
+                    get("/opinions/$requestedId")
+                        .with(jwt()),
+                ).andExpect(status().isOk)
+                .andReturn()
 
         val actual: OpinionDto = objectMapper.readValue(result.response.contentAsString)
         val expected =
@@ -139,22 +142,35 @@ class OpinionsIntegrationTests {
         val opinionId = UUID.randomUUID()
 
         // No role - 403
-        mockMvc.perform(
-            delete("/opinions/$opinionId")
-                .with(jwt())
-        ).andExpect(status().isForbidden)
+        mockMvc
+            .perform(
+                delete("/opinions/$opinionId")
+                    .with(jwt()),
+            ).andExpect(status().isForbidden)
 
         // User role - 403
-        mockMvc.perform(
-            delete("/opinions/$opinionId")
-                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")))
-        ).andExpect(status().isForbidden)
+        mockMvc
+            .perform(
+                delete("/opinions/$opinionId")
+                    .with(
+                        jwt().authorities(
+                            org.springframework.security.core.authority
+                                .SimpleGrantedAuthority("ROLE_USER"),
+                        ),
+                    ),
+            ).andExpect(status().isForbidden)
 
         // Admin role - 200
-        mockMvc.perform(
-            delete("/opinions/$opinionId")
-                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")))
-        ).andExpect(status().isOk)
+        mockMvc
+            .perform(
+                delete("/opinions/$opinionId")
+                    .with(
+                        jwt().authorities(
+                            org.springframework.security.core.authority
+                                .SimpleGrantedAuthority("ROLE_ADMIN"),
+                        ),
+                    ),
+            ).andExpect(status().isOk)
     }
 
     @Test
@@ -162,16 +178,28 @@ class OpinionsIntegrationTests {
         val opinionId = UUID.randomUUID()
 
         // Service role - 403 for delete (since it needs ADMIN)
-        mockMvc.perform(
-            delete("/opinions/$opinionId")
-                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SERVICE")))
-        ).andExpect(status().isForbidden)
+        mockMvc
+            .perform(
+                delete("/opinions/$opinionId")
+                    .with(
+                        jwt().authorities(
+                            org.springframework.security.core.authority
+                                .SimpleGrantedAuthority("ROLE_SERVICE"),
+                        ),
+                    ),
+            ).andExpect(status().isForbidden)
 
         // Service role - 200 for get (since it only needs authenticated)
-        mockMvc.perform(
-            get("/opinions/30000000-0000-0000-0000-000000000001")
-                .with(jwt().authorities(org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SERVICE")))
-        ).andExpect(status().isOk)
+        mockMvc
+            .perform(
+                get("/opinions/30000000-0000-0000-0000-000000000001")
+                    .with(
+                        jwt().authorities(
+                            org.springframework.security.core.authority
+                                .SimpleGrantedAuthority("ROLE_SERVICE"),
+                        ),
+                    ),
+            ).andExpect(status().isOk)
     }
 
     @Test

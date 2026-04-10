@@ -30,15 +30,15 @@ import java.util.UUID
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestObjectMapperConfiguration::class)
 class AuthIntegrationTest {
-
     private companion object {
         @Container
         @ServiceConnection
-        val postgres: PostgreSQLContainer<*> = PostgreSQLContainer(DockerImageName.parse("postgres:15"))
-            .withDatabaseName("users")
-            .withUsername("test")
-            .withPassword("test")
-            .withInitScript("db/init-schema.sql")
+        val postgres: PostgreSQLContainer<*> =
+            PostgreSQLContainer(DockerImageName.parse("postgres:15"))
+                .withDatabaseName("users")
+                .withUsername("test")
+                .withPassword("test")
+                .withInitScript("db/init-schema.sql")
     }
 
     @Autowired
@@ -57,25 +57,26 @@ class AuthIntegrationTest {
     fun `login with valid credentials returns tokens`() {
         val user = userRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000000")).get()
         val encodedPassword = passwordEncoder.encode("1234")
-        val updatedUser = UserPersistence(
-            id = user.id,
-            status = user.status,
-            statusTimestamp = user.statusTimestamp,
-            passwordHash = encodedPassword
-        )
+        val updatedUser =
+            UserPersistence(
+                id = user.id,
+                status = user.status,
+                statusTimestamp = user.statusTimestamp,
+                passwordHash = encodedPassword,
+            )
         userRepository.save(updatedUser)
-        
+
         println("[DEBUG_LOG] User password hash: ${updatedUser.passwordHash}")
         println("[DEBUG_LOG] Match 1234: ${passwordEncoder.matches("1234", updatedUser.passwordHash)}")
-        
+
         val loginRequest = LoginRequestDto("test@test.test", "1234")
-        
-        mockMvc.perform(
-            post("/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest))
-        )
-            .andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(loginRequest)),
+            ).andExpect(status().isOk)
             .andExpect(jsonPath("$.accessToken").exists())
             .andExpect(jsonPath("$.refreshToken").exists())
             .andExpect(jsonPath("$.expiresInMilliseconds").value(3600000))
@@ -84,24 +85,24 @@ class AuthIntegrationTest {
     @Test
     fun `login with invalid password returns 401`() {
         val loginRequest = LoginRequestDto("test@test.test", "wrong")
-        
-        mockMvc.perform(
-            post("/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest))
-        )
-            .andExpect(status().isUnauthorized)
+
+        mockMvc
+            .perform(
+                post("/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(loginRequest)),
+            ).andExpect(status().isUnauthorized)
     }
 
     @Test
     fun `login with unknown user returns 401`() {
         val loginRequest = LoginRequestDto("unknown@test.test", "1234")
-        
-        mockMvc.perform(
-            post("/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest))
-        )
-            .andExpect(status().isUnauthorized)
+
+        mockMvc
+            .perform(
+                post("/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(loginRequest)),
+            ).andExpect(status().isUnauthorized)
     }
 }

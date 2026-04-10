@@ -8,11 +8,15 @@ import org.springframework.web.bind.annotation.RequestHeader
 
 interface AuthApi {
     @PostMapping("/auth/login")
-    fun login(@RequestBody request: LoginRequestDto): AuthenticationTokenDto
+    fun login(
+        @RequestBody request: LoginRequestDto,
+    ): AuthenticationTokenDto
 
     @PostMapping("/auth/logout")
     fun logout()
 
     @PostMapping("/auth/refresh")
-    fun refresh(@RequestHeader("X-Refresh-Token") refreshToken: String): AuthenticationTokenDto
+    fun refresh(
+        @RequestHeader("X-Refresh-Token") refreshToken: String,
+    ): AuthenticationTokenDto
 }

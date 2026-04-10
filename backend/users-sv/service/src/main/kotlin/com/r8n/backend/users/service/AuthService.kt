@@ -15,8 +15,9 @@ class AuthService(
     private val tokenService: TokenService,
 ) {
     fun login(request: LoginRequestDto): AuthenticationTokenDto {
-        val user = userRepository.findByEmail(request.login)
-            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials")
+        val user =
+            userRepository.findByEmail(request.login)
+                ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials")
 
         if (user.passwordHash == null || !passwordEncoder.matches(request.password, user.passwordHash)) {
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials")
@@ -28,7 +29,7 @@ class AuthService(
         return AuthenticationTokenDto(
             accessToken = accessToken,
             refreshToken = refreshToken,
-            expiresInMilliseconds = tokenService.getAccessTokenExpirationMillis()
+            expiresInMilliseconds = tokenService.getAccessTokenExpirationMillis(),
         )
     }
 

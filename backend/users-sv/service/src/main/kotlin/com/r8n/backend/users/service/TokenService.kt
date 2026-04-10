@@ -28,15 +28,20 @@ class TokenService(
         RSASSASigner(decodePrivateKey(privateKeyPem))
     }
 
-    fun generateAccessToken(userId: UUID, roles: List<String>): String {
+    fun generateAccessToken(
+        userId: UUID,
+        roles: List<String>,
+    ): String {
         val now = Instant.now()
-        val claimsSet = JWTClaimsSet.Builder()
-            .issuer(issuer)
-            .subject(userId.toString())
-            .claim("roles", roles)
-            .issueTime(Date.from(now))
-            .expirationTime(Date.from(now.plus(accessTokenExpiration)))
-            .build()
+        val claimsSet =
+            JWTClaimsSet
+                .Builder()
+                .issuer(issuer)
+                .subject(userId.toString())
+                .claim("roles", roles)
+                .issueTime(Date.from(now))
+                .expirationTime(Date.from(now.plus(accessTokenExpiration)))
+                .build()
 
         val signedJWT = SignedJWT(JWSHeader(JWSAlgorithm.RS256), claimsSet)
         signedJWT.sign(signer)
@@ -45,20 +50,20 @@ class TokenService(
 
     fun generateRefreshToken(userId: UUID): String {
         val now = Instant.now()
-        val claimsSet = JWTClaimsSet.Builder()
-            .issuer(issuer)
-            .subject(userId.toString())
-            .claim("refresh", true)
-            .issueTime(Date.from(now))
-            .expirationTime(Date.from(now.plus(refreshTokenExpiration)))
-            .build()
+        val claimsSet =
+            JWTClaimsSet
+                .Builder()
+                .issuer(issuer)
+                .subject(userId.toString())
+                .claim("refresh", true)
+                .issueTime(Date.from(now))
+                .expirationTime(Date.from(now.plus(refreshTokenExpiration)))
+                .build()
 
         val signedJWT = SignedJWT(JWSHeader(JWSAlgorithm.RS256), claimsSet)
         signedJWT.sign(signer)
         return signedJWT.serialize()
     }
 
-    fun getAccessTokenExpirationMillis(): Long {
-        return accessTokenExpiration.toMillis()
-    }
+    fun getAccessTokenExpirationMillis(): Long = accessTokenExpiration.toMillis()
 }

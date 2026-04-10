@@ -11,8 +11,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter
 import org.springframework.security.web.SecurityFilterChain
-import java.security.interfaces.RSAPublicKey
 import java.security.KeyFactory
+import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
 
@@ -29,28 +29,28 @@ class SecurityAutoConfiguration {
     fun serviceTokenService(
         @org.springframework.beans.factory.annotation.Value("\${r8n.security.jwt.private-key:}") privateKeyPem: String,
         @org.springframework.beans.factory.annotation.Value("\${r8n.security.jwt.issuer:r8n}") issuer: String,
-        @org.springframework.beans.factory.annotation.Value("\${spring.application.name:unknown-service}") serviceName: String,
-    ): ServiceTokenService {
-        return ServiceTokenService(privateKeyPem, issuer, serviceName)
-    }
+        @org.springframework.beans.factory.annotation.Value("\${spring.application.name:unknown-service}") serviceName:
+            String,
+    ): ServiceTokenService = ServiceTokenService(privateKeyPem, issuer, serviceName)
 
     @Bean
     @ConditionalOnMissingBean
-    fun restSecurityInterceptor(serviceTokenService: ServiceTokenService): RestSecurityInterceptor {
-        return RestSecurityInterceptor(serviceTokenService)
-    }
+    fun restSecurityInterceptor(serviceTokenService: ServiceTokenService): RestSecurityInterceptor =
+        RestSecurityInterceptor(serviceTokenService)
 
     @Bean
     @ConditionalOnMissingBean
     fun jwtDecoder(
-        @org.springframework.beans.factory.annotation.Value("\${${PUBLIC_KEY_PROPERTY}:}") publicKeyPem: String
+        @org.springframework.beans.factory.annotation.Value("\${${PUBLIC_KEY_PROPERTY}:}") publicKeyPem: String,
     ): JwtDecoder {
         if (publicKeyPem.isBlank()) {
             // Fallback for local development if not provided - use a dummy decoder or fail
             // In a real app, this should probably fail or use a default dev key
             // For now, let's use a very simple (unsafe) decoder if key is missing to not break everything immediately
             // But ideally, it should be provided.
-            throw IllegalStateException("Public key for JWT verification is not provided in property $PUBLIC_KEY_PROPERTY")
+            throw IllegalStateException(
+                "Public key for JWT verification is not provided in property $PUBLIC_KEY_PROPERTY",
+            )
         }
 
         val publicKey = decodePublicKey(publicKeyPem)
@@ -58,10 +58,11 @@ class SecurityAutoConfiguration {
     }
 
     private fun decodePublicKey(pem: String): RSAPublicKey {
-        val cleanPem = pem
-            .replace("-----BEGIN PUBLIC KEY-----", "")
-            .replace("-----END PUBLIC KEY-----", "")
-            .replace("\\s".toRegex(), "")
+        val cleanPem =
+            pem
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replace("\\s".toRegex(), "")
         val encoded = Base64.getDecoder().decode(cleanPem)
         val keySpec = X509EncodedKeySpec(encoded)
         val keyFactory = KeyFactory.getInstance("RSA")
@@ -82,32 +83,37 @@ class SecurityAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    fun passwordEncoder(): org.springframework.security.crypto.password.PasswordEncoder {
-        return org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
-    }
+    fun passwordEncoder(): org.springframework.security.crypto.password.PasswordEncoder =
+        org.springframework.security.crypto.bcrypt
+            .BCryptPasswordEncoder()
 
     @Bean
     @ConditionalOnMissingBean
-    fun maskingLoggingFilter(): MaskingLoggingFilter {
-        return MaskingLoggingFilter()
-    }
+    fun maskingLoggingFilter(): MaskingLoggingFilter = MaskingLoggingFilter()
 
     @Bean
     @ConditionalOnMissingBean
-    fun filterChain(http: HttpSecurity, jwtDecoder: JwtDecoder, jwtAuthenticationConverter: JwtAuthenticationConverter, maskingLoggingFilter: MaskingLoggingFilter): SecurityFilterChain {
-        return http
+    fun filterChain(
+        http: HttpSecurity,
+        jwtDecoder: JwtDecoder,
+        jwtAuthenticationConverter: JwtAuthenticationConverter,
+        maskingLoggingFilter: MaskingLoggingFilter,
+    ): SecurityFilterChain =
+        http
             .csrf { it.disable() }
-            .addFilterBefore(maskingLoggingFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java)
-            .authorizeHttpRequests {
-                it.requestMatchers("/auth/**").permitAll()
-                    .anyRequest().authenticated()
-            }
-            .oauth2ResourceServer { oauth ->
+            .addFilterBefore(
+                maskingLoggingFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java,
+            ).authorizeHttpRequests {
+                it
+                    .requestMatchers("/auth/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated()
+            }.oauth2ResourceServer { oauth ->
                 oauth.jwt { jwt ->
                     jwt.decoder(jwtDecoder)
                     jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)
                 }
-            }
-            .build()
-    }
+            }.build()
 }
