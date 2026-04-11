@@ -8,10 +8,21 @@ test.describe("GDPR / Users API", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("should return GDPR data when authenticated with stub token", async ({ request }) => {
+  test("should return GDPR data when authenticated with valid token", async ({ request }) => {
+    // 1. Login to get a valid token
+    const loginResponse = await request.post("/auth/login", {
+      data: {
+        login: "test@test.test",
+        password: "1234",
+      },
+    });
+    expect(loginResponse.status()).toBe(200);
+    const { accessToken } = await loginResponse.json();
+
+    // 2. Use the token to get GDPR data
     const response = await request.get(GDPR_EXPORT_PATH, {
       headers: {
-        Authorization: "Bearer stub-access-token-123",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
