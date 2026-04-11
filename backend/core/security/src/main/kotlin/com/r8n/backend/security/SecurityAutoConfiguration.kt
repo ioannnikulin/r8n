@@ -47,8 +47,7 @@ class SecurityAutoConfiguration {
     fun serviceTokenService(
         @Value("\${r8n.security.jwt.private-key:}") privateKeyPem: String,
         @Value("\${r8n.security.jwt.issuer:r8n}") issuer: String,
-        @Value("\${spring.application.name:unknown-service}") serviceName:
-            String,
+        @Value("\${spring.application.name:unknown-service}") serviceName: String,
     ): ServiceTokenService = ServiceTokenService(privateKeyPem, issuer, serviceName)
 
     @Bean
