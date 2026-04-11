@@ -11,6 +11,6 @@ import java.util.UUID
 class InterserviceController(
     private val userService: UserService,
 ) : UsersInternalApi {
-    @PreAuthorize(Authority.IS_SERVICE)
+    @PreAuthorize(Authority.IS_USER_OR_SERVICE)
     override fun getUserName(id: UUID) = userService.getName(id)
 }

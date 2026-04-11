@@ -60,7 +60,7 @@ class InterserviceSecurityIntegrationTest {
     }
 
     @Test
-    fun `getUserName denies access with USER role`() {
+    fun `getUserName allows access with USER role`() {
         val userId = UUID.randomUUID()
         val token = serviceTokenService.generateAccessToken(UUID.randomUUID(), listOf("USER"))
 
@@ -68,6 +68,6 @@ class InterserviceSecurityIntegrationTest {
             .perform(
                 get("/users/$userId/name")
                     .header("Authorization", "Bearer $token"),
-            ).andExpect(status().isForbidden)
+            ).andExpect(status().isOk)
     }
 }

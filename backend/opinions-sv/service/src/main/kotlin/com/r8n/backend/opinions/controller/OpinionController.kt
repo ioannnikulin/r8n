@@ -5,6 +5,7 @@ import com.r8n.backend.opinions.api.OpinionApi
 import com.r8n.backend.opinions.api.dto.OpinionDto
 import com.r8n.backend.opinions.facade.OpinionFacade
 import com.r8n.backend.security.Authority.IS_USER
+import com.r8n.backend.security.Authority.IS_USER_OR_SERVICE
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.RestController
@@ -14,7 +15,7 @@ import java.util.UUID
 class OpinionController(
     private val opinionFacade: OpinionFacade,
 ) : OpinionApi {
-    @PreAuthorize(IS_USER)
+    @PreAuthorize(IS_USER_OR_SERVICE)
     override fun getOpinionById(id: UUID) = opinionFacade.getOpinion(id)
 
     @PreAuthorize(IS_USER)

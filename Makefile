@@ -61,6 +61,7 @@ docker-logs: ## Tail logs for all services
 $(addprefix docker-logs-,$(SERVICES)): docker-logs-%: ## Tail logs for one service
 	docker compose $(DOCKER_COMPOSE_ENV_ARGS) -f docker-compose.yml logs -f $*
 
+##@ Docker artifacts & jars preparations
 prepare-artifacts: prebuild-jars ## Copy service JARs into deployment/ folders
 	@set -e; \
 	for svc in $(SERVICES); do \
