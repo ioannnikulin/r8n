@@ -39,6 +39,17 @@ CREATE TABLE users.consents (
 CREATE INDEX idx_consents_user_id ON users.consents(user_id);
 CREATE INDEX idx_consents_session ON users.consents(session);
 
+CREATE TABLE users.users_role_assignments (
+    id UUID PRIMARY KEY,
+    "user" UUID NOT NULL,
+    role VARCHAR(32) NOT NULL,
+    granted_by UUID NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
+    CONSTRAINT fk_role_assignment_user FOREIGN KEY ("user") REFERENCES users.users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_role_assignment_granter FOREIGN KEY (granted_by) REFERENCES users.users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_users_role_assignments_user_id ON users.users_role_assignments("user");
+
 --changeset inikulin:V2_seed_data context:local,test
 -- password is '1234' hashed with BCrypt
 INSERT INTO users.users (id, status, status_timestamp, password_hash)

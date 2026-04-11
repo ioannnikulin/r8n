@@ -1,31 +1,34 @@
 package com.r8n.backend.users
 
 import com.r8n.backend.users.api.dto.LoginRequestDto
-import com.r8n.backend.users.persistence.UserPersistence
+import com.r8n.backend.users.provider.database.PIIRepository
 import com.r8n.backend.users.provider.database.UserRepository
+import com.r8n.backend.users.provider.database.UserRoleAssignmentRepository
+import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.json.AutoConfigureJsonTesters
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import tools.jackson.databind.ObjectMapper
+import java.time.Instant
 import java.util.UUID
 
 @ActiveProfiles("test")
 @Testcontainers
-@AutoConfigureJsonTesters
 @AutoConfigureMockMvc
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestObjectMapperConfiguration::class)
@@ -51,23 +54,41 @@ class AuthIntegrationTest {
     lateinit var userRepository: UserRepository
 
     @Autowired
-    lateinit var passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder
+    lateinit var piiRepository: PIIRepository
+
+    @Autowired
+    lateinit var userRoleAssignmentRepository: UserRoleAssignmentRepository
+
+    @Autowired
+    lateinit var passwordEncoder: PasswordEncoder
+
+    @Autowired
+    lateinit var entityManager: EntityManager
 
     @Test
+    @Transactional
     fun `login with valid credentials returns tokens`() {
-        val user = userRepository.findById(UUID.fromString("00000000-0000-0000-0000-000000000000")).get()
+        val pii = piiRepository.findAll().first { it.email == "test@test.test" }
+        val userId = pii.userId
         val encodedPassword = passwordEncoder.encode("1234")
-        val updatedUser =
-            UserPersistence(
-                id = user.id,
-                status = user.status,
-                statusTimestamp = user.statusTimestamp,
-                passwordHash = encodedPassword,
-            )
-        userRepository.save(updatedUser)
 
-        println("[DEBUG_LOG] User password hash: ${updatedUser.passwordHash}")
-        println("[DEBUG_LOG] Match 1234: ${passwordEncoder.matches("1234", updatedUser.passwordHash)}")
+        entityManager
+            .createNativeQuery("UPDATE users.users SET password_hash = :passwordHash WHERE id = :userId")
+            .setParameter("passwordHash", encodedPassword)
+            .setParameter("userId", userId)
+            .executeUpdate()
+
+        entityManager
+            .createNativeQuery(
+                "INSERT INTO users.users_role_assignments (id, \"user\", role, granted_by, timestamp) VALUES (:id, :userId, :role, :grantedBy, :timestamp)",
+            ).setParameter("id", UUID.randomUUID())
+            .setParameter("userId", userId)
+            .setParameter("role", "ADMIN")
+            .setParameter("grantedBy", userId)
+            .setParameter("timestamp", Instant.now())
+            .executeUpdate()
+
+        entityManager.clear()
 
         val loginRequest = LoginRequestDto("test@test.test", "1234")
 

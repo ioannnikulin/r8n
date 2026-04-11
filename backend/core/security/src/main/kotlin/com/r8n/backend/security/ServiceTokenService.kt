@@ -22,8 +22,6 @@ class ServiceTokenService(
     @Value("\${r8n.security.jwt.issuer:r8n}") private val issuer: String,
     @Value("\${r8n.security.service-name:unknown-service}") private val serviceName: String,
 ) {
-    private val accessTokenExpiration = Duration.ofMinutes(5)
-
     private val signer: JWSSigner? by lazy {
         if (privateKeyPem.isBlank()) {
             null
@@ -34,20 +32,36 @@ class ServiceTokenService(
 
     fun generateServiceToken(): String? {
         val s = signer ?: return null
+        return generateToken(s, "service-$serviceName", listOf("SERVICE"), Duration.ofMinutes(5))
+    }
 
+    fun generateAccessToken(
+        userId: java.util.UUID,
+        roles: List<String>,
+    ): String? {
+        val s = signer ?: return null
+        return generateToken(s, userId.toString(), roles, Duration.ofHours(1))
+    }
+
+    private fun generateToken(
+        signer: JWSSigner,
+        subject: String,
+        roles: List<String>,
+        expiration: Duration,
+    ): String {
         val now = Instant.now()
         val claimsSet =
             JWTClaimsSet
                 .Builder()
                 .issuer(issuer)
-                .subject("service-$serviceName")
-                .claim("roles", listOf("SERVICE"))
+                .subject(subject)
+                .claim("roles", roles)
                 .issueTime(Date.from(now))
-                .expirationTime(Date.from(now.plus(accessTokenExpiration)))
+                .expirationTime(Date.from(now.plus(expiration)))
                 .build()
 
         val signedJWT = SignedJWT(JWSHeader(JWSAlgorithm.RS256), claimsSet)
-        signedJWT.sign(s)
+        signedJWT.sign(signer)
         return signedJWT.serialize()
     }
 
