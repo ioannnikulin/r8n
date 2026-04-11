@@ -19,6 +19,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.security.test.context.support.WithMockUser
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
@@ -218,6 +219,7 @@ class OpinionsIntegrationTests {
             mockMvc
                 .perform(
                     post("/opinions")
+                        .with(csrf())
                         .queryParam("subjectId", subjectId)
                         .queryParam("subjective", "new subjective")
                         .queryParam("objective", "new objective")
@@ -240,15 +242,17 @@ class OpinionsIntegrationTests {
     @Test
     @WithMockUser
     fun `update opinion works`() {
+        val accessToken = serviceTokenService.generateAccessToken(CURRENT_USER_ID, listOf("USER"))
         val createResult =
             mockMvc
                 .perform(
                     post("/opinions")
+                        .with(csrf())
                         .queryParam("subjectId", "15151515-1515-1515-1515-151515151515")
                         .queryParam("subjective", "to be replaced subjective")
                         .queryParam("objective", "to be replaced objective")
                         .queryParam("mark", "2.10")
-                        .header("Authorization", "Bearer stub-access-token-123"),
+                        .header("Authorization", "Bearer $accessToken"),
                 ).andExpect(status().isOk)
                 .andReturn()
 
@@ -258,10 +262,11 @@ class OpinionsIntegrationTests {
             mockMvc
                 .perform(
                     patch("/opinions/${created.id}")
+                        .with(csrf())
                         .queryParam("subjective", "updated subjective")
                         .queryParam("objective", "updated objective")
                         .queryParam("mark", "4.90")
-                        .header("Authorization", "Bearer stub-access-token-123"),
+                        .header("Authorization", "Bearer $accessToken"),
                 ).andExpect(status().isOk)
                 .andReturn()
 
