@@ -16,8 +16,5 @@ class AuthController(
         authService.logout()
     }
 
-    override fun refresh(refreshToken: String): AuthenticationTokenDto {
-        // Refresh logic would go here. For now, we keep it simple.
-        throw UnsupportedOperationException("Refresh not implemented yet")
-    }
+    override fun refresh(refreshToken: String): AuthenticationTokenDto = authService.refresh(refreshToken)
 }

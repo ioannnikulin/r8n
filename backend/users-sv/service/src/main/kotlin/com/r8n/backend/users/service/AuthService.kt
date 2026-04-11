@@ -40,4 +40,18 @@ class AuthService(
         // In a stateless JWT setup, logout on the server side is often a no-op unless we use a blacklist
         // For now, we just let the client discard the token.
     }
+
+    fun refresh(refreshToken: String): AuthenticationTokenDto {
+        val userId = tokenService.validateRefreshToken(refreshToken)
+
+        val roles = userRoleAssignmentRepository.findAllByUser(userId).map { it.role.name }
+        val accessToken = tokenService.generateAccessToken(userId, roles.ifEmpty { listOf("USER") })
+        val newRefreshToken = tokenService.generateRefreshToken(userId)
+
+        return AuthenticationTokenDto(
+            accessToken = accessToken,
+            refreshToken = newRefreshToken,
+            expiresInMilliseconds = tokenService.getAccessTokenExpirationMillis(),
+        )
+    }
 }

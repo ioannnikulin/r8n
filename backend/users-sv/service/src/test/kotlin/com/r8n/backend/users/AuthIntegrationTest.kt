@@ -126,4 +126,44 @@ class AuthIntegrationTest {
                     .content(objectMapper.writeValueAsString(loginRequest)),
             ).andExpect(status().isUnauthorized)
     }
+
+    @Test
+    @Transactional
+    fun `refresh token flow works`() {
+        val pii = piiRepository.findAll().first { it.email == "test@test.test" }
+        val userId = pii.userId
+        val encodedPassword = passwordEncoder.encode("1234")
+
+        entityManager
+            .createNativeQuery("UPDATE users.users SET password_hash = :passwordHash WHERE id = :userId")
+            .setParameter("passwordHash", encodedPassword)
+            .setParameter("userId", userId)
+            .executeUpdate()
+
+        entityManager.clear()
+
+        val loginRequest = LoginRequestDto("test@test.test", "1234")
+
+        val loginResponse =
+            mockMvc
+                .perform(
+                    post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val responseJson = loginResponse.response.contentAsString
+        val refreshToken =
+            objectMapper.readTree(responseJson).get("refreshToken").asString()
+
+        mockMvc
+            .perform(
+                post("/auth/refresh")
+                    .header("X-Refresh-Token", refreshToken),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.accessToken").exists())
+            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.expiresInMilliseconds").value(3600000))
+    }
 }

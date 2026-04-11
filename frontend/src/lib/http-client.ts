@@ -93,6 +93,7 @@ export function createHttpClient(config: HttpClientConfig = {}): HttpClient {
       options.timeoutMs ?? defaultTimeoutMs,
     );
     const requestHeaders = createHeaders(config.defaultHeaders, options.headers);
+    addCsrfToken(method, requestHeaders);
     const requestBody = serializeBody(method, options.body, requestHeaders);
     const requestUrl = buildUrl(baseUrl, path, options.query);
 
@@ -333,6 +334,30 @@ function extractServerMessage(responseBody: unknown): string | undefined {
     return detail.trim();
   }
 
+  return undefined;
+}
+
+function addCsrfToken(method: HttpMethod, headers: Headers): void {
+  if (method === "GET") {
+    return;
+  }
+
+  const csrfToken = getCookie("XSRF-TOKEN");
+  if (csrfToken) {
+    headers.set("X-XSRF-TOKEN", csrfToken);
+  }
+}
+
+function getCookie(name: string): string | undefined {
+  if (typeof document === "undefined") {
+    return undefined;
+  }
+
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(";").shift();
+  }
   return undefined;
 }
 
