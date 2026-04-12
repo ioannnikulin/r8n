@@ -91,6 +91,34 @@ services:
     depends_on:
       - database
 
+  export:
+    build:
+      context: ./deployment/export
+      dockerfile: Dockerfile
+    env_file:
+      - ./deployment/config/docker.env
+      - ./deployment/secrets/docker.secrets.env
+    environment:
+      <<: [*tls-common-env, *tls-client-common-env]
+      SERVICE_NAME: export
+      SERVER_SSL_KEY_STORE: /certs/keystore-export.p12
+      SERVICES_EXPORT_PORT: ${SERVICES_EXPORT_PORT:?}
+      INTERSERVICE_PROTOCOL: ${INTERSERVICE_PROTOCOL:?}
+      SERVICES_USERS_HOST: ${SERVICES_USERS_HOST:?}
+      SERVICES_USERS_PORT: ${SERVICES_USERS_PORT:?}
+      SERVICES_MOCK_HOST: ${SERVICES_MOCK_HOST:?}
+      SERVICES_MOCK_PORT: ${SERVICES_MOCK_PORT:?}
+      LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:?}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+      SPRING_APPLICATION_JSON: '{"services":{"users":{"url":"${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}"},"mock":{"url":"${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}"}}}'
+    networks:
+      - r8n_net
+    volumes:
+      - ./deployment/export/logs:/var/log/r8n
+      - ./deployment/certs/internal:/certs:ro
+    depends_on:
+      - database
+
   gateway:
     build:
       context: ./deployment/gateway
@@ -111,6 +139,8 @@ services:
       SERVICES_MOCK_PORT: ${SERVICES_MOCK_PORT:?}
       SERVICES_USERS_HOST: ${SERVICES_USERS_HOST:?}
       SERVICES_USERS_PORT: ${SERVICES_USERS_PORT:?}
+      SERVICES_EXPORT_HOST: ${SERVICES_EXPORT_HOST:?}
+      SERVICES_EXPORT_PORT: ${SERVICES_EXPORT_PORT:?}
       LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:?}
     ports:
       - "${GATEWAY_HOST_PORT:?}:${GATEWAY_CONTAINER_PORT:?}"
@@ -118,6 +148,7 @@ services:
       - opinions
       - mock
       - users
+      - export
       - database
     networks:
       - r8n_net

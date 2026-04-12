@@ -10,6 +10,8 @@ import com.r8n.backend.mock.integration.api.OpinionListInternalApi
 import com.r8n.backend.users.api.dto.ConsentDto
 import com.r8n.backend.users.api.dto.PersonalIdentifiableInformationSectionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
+import org.slf4j.LoggerFactory
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.UUID
@@ -23,6 +25,7 @@ class DataExportFacade(
     private val outgoingAccessRequestClient: OutgoingAccessRequestApi,
     private val messageClient: MessagingApi,
 ) {
+    private val logger = LoggerFactory.getLogger(DataExportFacade::class.java)
     private val exportJobs = ConcurrentHashMap<UUID, ExportJob>()
 
     data class ExportJob(
@@ -41,19 +44,22 @@ class DataExportFacade(
     }
 
     fun startExport(userId: UUID) {
+        logger.info("Starting export for user: $userId")
         exportJobs[userId] = ExportJob(userId, ExportJobStatus.PENDING, Instant.now())
 
-        // In a real implementation, this would trigger an async job
-        // For now, we'll mark it as completed immediately for simplicity
-        Thread {
-            try {
-                updateExportStatus(userId, ExportJobStatus.IN_PROGRESS)
-                val data = getUserCompleteDataDto(userId)
-                completeExport(userId, data)
-            } catch (e: Exception) {
-                failExport(userId)
-            }
-        }.start()
+        // For now, process synchronously to ensure security context is properly propagated
+        // In a real implementation, this would be an async job
+        try {
+            updateExportStatus(userId, ExportJobStatus.IN_PROGRESS)
+            logger.info("Fetching user data for user: $userId")
+            val data = getUserCompleteDataDto(userId)
+            logger.info("User data fetched successfully for user: $userId")
+            completeExport(userId, data)
+            logger.info("Export completed successfully for user: $userId")
+        } catch (e: Exception) {
+            logger.error("Export failed for user: $userId", e)
+            failExport(userId)
+        }
     }
 
     fun getExportStatus(userId: UUID): com.r8n.backend.export.api.dto.ExportStateDto {

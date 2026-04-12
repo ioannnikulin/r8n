@@ -2,6 +2,15 @@ server:
   port: ${GATEWAY_PORT}
   ssl:
     enabled: ${SERVER_SSL_ENABLED}
+    key-store: ${SERVER_SSL_KEY_STORE}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE}
+    key-alias: ${SERVER_SSL_KEY_ALIAS}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive: DEBUG
 
 spring:
   cloud:
@@ -13,10 +22,6 @@ spring:
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
               predicates:
                 - Path=/opinions/**
-            - id: auth
-              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
-              predicates:
-                - Path=/auth/**
             - id: users
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
               predicates:
@@ -28,4 +33,4 @@ spring:
             - id: mock
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
               predicates:
-                - Path=/access-requests/**,/opinion-lists/**,/selectors/**
+                - Path=/auth/**,/access-requests/**,/opinion-lists/**,/selectors/**
