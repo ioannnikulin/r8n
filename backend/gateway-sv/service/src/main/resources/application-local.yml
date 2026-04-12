@@ -17,6 +17,10 @@ spring:
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
               predicates:
                 - Path=/opinions/**
+            - id: auth
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
+              predicates:
+                - Path=/auth/**
             - id: users
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
               predicates:
@@ -24,4 +28,4 @@ spring:
             - id: mock
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
               predicates:
-                - Path=/auth/**,/access-requests/**,/opinion-lists/**,/selectors/**
+                - Path=/access-requests/**,/opinion-lists/**,/selectors/**
