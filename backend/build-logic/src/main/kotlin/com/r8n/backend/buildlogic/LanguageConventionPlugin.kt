@@ -49,6 +49,7 @@ class LanguageConventionPlugin : Plugin<Project> {
 
             tasks.withType(Test::class.java).configureEach {
                 useJUnitPlatform()
+                this.failOnNoDiscoveredTests.set(false)
             }
 
             dependencies.apply {

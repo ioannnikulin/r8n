@@ -14,4 +14,5 @@ dependencies {
     implementation(project(":mock-api-integration"))
     implementation(project(":mock-client"))
     implementation(project(":mock-sv"))
+    implementation(libs.spring.boot.starter.security)
 }

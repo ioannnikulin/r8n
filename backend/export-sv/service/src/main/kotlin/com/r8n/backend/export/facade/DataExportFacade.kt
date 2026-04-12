@@ -1,16 +1,15 @@
 package com.r8n.backend.export.facade
 
 import com.r8n.backend.core.api.PageRequestDto
-import com.r8n.backend.core.utils.toResponse
-import com.r8n.backend.export.api.dto.ConsentDto
-import com.r8n.backend.export.api.dto.PersonalIdentifiableInformationSectionDto
+import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.export.api.dto.UserCompleteDataDto
 import com.r8n.backend.mock.api.IncomingAccessRequestApi
 import com.r8n.backend.mock.api.MessagingApi
 import com.r8n.backend.mock.api.OutgoingAccessRequestApi
 import com.r8n.backend.mock.integration.api.OpinionListInternalApi
+import com.r8n.backend.users.api.dto.ConsentDto
+import com.r8n.backend.users.api.dto.PersonalIdentifiableInformationSectionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
-import org.springframework.data.domain.PageImpl
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.UUID
@@ -92,12 +91,18 @@ class DataExportFacade(
             id = user.id,
             status = user.status,
             statusTimestamp = user.statusTimestamp,
-            consents = PageImpl(user.consents.map { it.toExportDto() }).toResponse(),
+            consents =
+                PageResponseDto(
+                    items = user.consents.map { it.toExportDto() },
+                    total = user.consents.size.toLong(),
+                    page = 0,
+                    size = user.consents.size,
+                ),
             personalIdentifiableInformation =
                 PersonalIdentifiableInformationSectionDto(
                     name = user.name,
                     email = user.email,
-                    sessions = sessions.map { it }.toResponse(),
+                    sessions = sessions,
                 ),
             opinions = opinionClient.getMineFull(PageRequestDto(0, -1)),
             outgoingRequests = outgoingAccessRequestClient.get(null, null, null, PageRequestDto(0, -1)),
