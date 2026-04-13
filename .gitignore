@@ -17,3 +17,4 @@ docker.secrets.env
 .kotlin
 *.txt
 .access_token
+BOOT-INF/
