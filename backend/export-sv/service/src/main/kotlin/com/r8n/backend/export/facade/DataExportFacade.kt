@@ -11,7 +11,6 @@ import com.r8n.backend.users.api.dto.ConsentDto
 import com.r8n.backend.users.api.dto.PersonalIdentifiableInformationSectionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.UUID
@@ -91,7 +90,7 @@ class DataExportFacade(
 
     fun getUserCompleteDataDto(id: UUID): UserCompleteDataDto {
         val user = usersInternalApi.getUser(id)
-        val sessions = usersInternalApi.getSessionsForUser(id, PageRequestDto(0, -1))
+        val sessions = usersInternalApi.getSessionsForUser(id, PageRequestDto(0, 1000))
 
         return UserCompleteDataDto(
             id = user.id,
@@ -110,9 +109,9 @@ class DataExportFacade(
                     email = user.email,
                     sessions = sessions,
                 ),
-            opinions = opinionClient.getMineFull(PageRequestDto(0, -1)),
-            outgoingRequests = outgoingAccessRequestClient.get(null, null, null, PageRequestDto(0, -1)),
-            incomingRequests = incomingAccessRequestClient.get(null, null, null, PageRequestDto(0, -1)),
+            opinions = opinionClient.getMineFull(PageRequestDto(0, 1000)),
+            outgoingRequests = outgoingAccessRequestClient.get(null, null, null, PageRequestDto(0, 1000)),
+            incomingRequests = incomingAccessRequestClient.get(null, null, null, PageRequestDto(0, 1000)),
             messages = messageClient.getSupportThreads(),
         )
     }

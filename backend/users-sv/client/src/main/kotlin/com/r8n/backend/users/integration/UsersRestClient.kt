@@ -6,6 +6,7 @@ import com.r8n.backend.users.api.dto.UserDto
 import com.r8n.backend.users.api.dto.UserSessionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.NAME_PATH
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.web.client.RestClient
 import java.util.UUID
 
@@ -39,5 +40,5 @@ class UsersRestClient(
                     .queryParam("size", page?.size ?: 20)
                     .build(userId)
             }.retrieve()
-            .body(PageResponseDto::class.java) as PageResponseDto<UserSessionDto>
+            .body(object : ParameterizedTypeReference<PageResponseDto<UserSessionDto>>() {})!!
 }

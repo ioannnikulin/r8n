@@ -28,13 +28,15 @@ frontend_npx() { if command -v nvm >/dev/null 2>&1; then nvm exec $(FRONTEND_NOD
     prebuild-jars prepare-artifacts verify-artifacts docker-build docker-up \
     docker-certs docker-certs-force internal-certs internal-certs-force internal-certs-clean docker-certs-clean docker-secrets-clean docker-secrets-init edge-certs edge-certs-force \
     docker-down docker-logs clean-artifacts ensure-log-dirs clean-logs \
-    routed-request-opinion routed-request-mock direct-request-opinion direct-request-mock \
-    https-routed-request-opinion https-routed-request-mock \
-    docker-database-drop-volume-personal docker-database-drop-volume-campus docker-run-database docker-database-connect \
+    routed-request-opinion routed-request-mock routed-request-gdpr direct-request-opinion direct-request-mock \
+    https-routed-request-opinion https-routed-request-mock https-routed-request-gdpr \
+    docker-database-drop-volume-personal docker-database-drop-volume-campus docker-database-create-data-folder docker-database-run docker-database-connect \
     build-opinions who-ate-all-the-space clean-the-fuck-out-of-this-campus-machine \
     frontend-install frontend-install-all frontend-check-node frontend-dev frontend-build frontend-lint \
     frontend-test frontend-test-unit frontend-test-e2e frontend-test-e2e-ui frontend-test-e2e-api frontend-clean frontend-clean-all frontend-cert frontend-cert-clean \
-    clean fclean re move-caches-to-goinfre gradle-%-bootJar check-makefile
+    clean fclean re move-caches-to-goinfre gradle-%-bootJar check-makefile \
+    lint-backend test-backend test-frontend test-frontend-prepare test-e2e \
+    test-github test-github-backend test-github-frontend test-github-e2e
 
 ##@ Docker
 docker-up: docker-build ensure-log-dirs docker-certs ## Start local Docker stack (builds images, ensures logs, generates certs)
