@@ -92,7 +92,7 @@ jobs:
           export SPRING_PROFILES_ACTIVE=test-e2e
           make docker-up
           # Wait for gateway to be healthy
-          timeout 300 bash -c 'until curl -sk https://localhost:8080/users/export -H "Authorization: Bearer stub-access-token-123" > /dev/null 2>&1; do sleep 5; done'
+          timeout 300 bash -c 'until curl -sk https://localhost:8080/export/users/00000000-0000-0000-0000-000000000000/start -H "Authorization: Bearer stub-access-token-123" > /dev/null 2>&1; do sleep 5; done'
 
       - name: Run E2E tests
         run: make test-github-e2e
