@@ -1,0 +1,18 @@
+server:
+  port: 0
+  ssl:
+    enabled: false
+
+spring:
+  application:
+    name: export-sv
+
+services:
+  users:
+    url: http://localhost:8080
+  mock:
+    url: http://localhost:8090
+
+logging:
+  level:
+    root: ERROR
