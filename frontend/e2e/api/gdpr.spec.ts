@@ -10,29 +10,40 @@ test.describe("GDPR / Export API", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("should return GDPR data when authenticated with stub token", async ({ request }) => {
-    // Start export
+  test("should return GDPR data when authenticated with valid token", async ({ request }) => {
+    // 1. Login to get a valid token
+    const loginResponse = await request.post("/auth/login", {
+      data: {
+        login: "test",
+        password: "1234",
+      },
+    });
+    expect(loginResponse.status()).toBe(200);
+    const loginData = await loginResponse.json();
+    const accessToken = loginData.accessToken;
+
+    // 2. Start export
     const startResponse = await request.post(EXPORT_START_PATH, {
       headers: {
-        Authorization: "Bearer stub-access-token-123",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
     expect(startResponse.status()).toBe(202); // Accepted
 
-    // Check status (with stub data, it should be immediately completed)
+    // 3. Check status (with stub data, it should be immediately completed)
     const statusResponse = await request.get(EXPORT_STATUS_PATH, {
       headers: {
-        Authorization: "Bearer stub-access-token-123",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
     expect(statusResponse.status()).toBe(200);
     const status = await statusResponse.json();
     expect(status).toHaveProperty("status", "COMPLETED");
 
-    // Download data
+    // 4. Download data
     const downloadResponse = await request.get(EXPORT_DOWNLOAD_PATH, {
       headers: {
-        Authorization: "Bearer stub-access-token-123",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
     expect(downloadResponse.status()).toBe(200);

@@ -1,7 +1,6 @@
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-# Cache bust: 2026-04-12-22:51
-COPY --chown=root:root app.jar /app/app.jar
+COPY app.jar /app/app.jar
 COPY startup.sh /app/startup.sh
 RUN chmod +x /app/startup.sh
 ENTRYPOINT ["/app/startup.sh"]

@@ -2,12 +2,13 @@ package com.r8n.backend.export.facade
 
 import com.r8n.backend.core.api.PageRequestDto
 import com.r8n.backend.core.api.PageResponseDto
+import com.r8n.backend.export.api.dto.ExportStateDto
+import com.r8n.backend.export.api.dto.ExportStatus
 import com.r8n.backend.export.api.dto.UserCompleteDataDto
 import com.r8n.backend.mock.api.IncomingAccessRequestApi
 import com.r8n.backend.mock.api.MessagingApi
 import com.r8n.backend.mock.api.OutgoingAccessRequestApi
 import com.r8n.backend.mock.integration.api.OpinionListInternalApi
-import com.r8n.backend.users.api.dto.ConsentDto
 import com.r8n.backend.users.api.dto.PersonalIdentifiableInformationSectionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.slf4j.LoggerFactory
@@ -18,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class DataExportFacade(
-    private val usersInternalApi: UsersInternalApi,
+    private val usersClient: UsersInternalApi,
     private val opinionClient: OpinionListInternalApi,
     private val incomingAccessRequestClient: IncomingAccessRequestApi,
     private val outgoingAccessRequestClient: OutgoingAccessRequestApi,
@@ -61,12 +62,12 @@ class DataExportFacade(
         }
     }
 
-    fun getExportStatus(userId: UUID): com.r8n.backend.export.api.dto.ExportStateDto {
+    fun getExportStatus(userId: UUID): ExportStateDto {
         val job =
             exportJobs[userId]
                 ?: throw NoSuchElementException("No export job found for user $userId")
 
-        return com.r8n.backend.export.api.dto.ExportStateDto(
+        return ExportStateDto(
             userId = job.userId,
             status = job.status.toApiStatus(),
             createdAt = job.createdAt,
@@ -89,8 +90,8 @@ class DataExportFacade(
     }
 
     fun getUserCompleteDataDto(id: UUID): UserCompleteDataDto {
-        val user = usersInternalApi.getUser(id)
-        val sessions = usersInternalApi.getSessionsForUser(id, PageRequestDto(0, 1000))
+        val user = usersClient.getUser(id)
+        val sessions = usersClient.getSessionsForUser(id, PageRequestDto(0, 1000))
 
         return UserCompleteDataDto(
             id = user.id,
@@ -98,7 +99,7 @@ class DataExportFacade(
             statusTimestamp = user.statusTimestamp,
             consents =
                 PageResponseDto(
-                    items = user.consents.map { it.toExportDto() },
+                    items = user.consents,
                     total = user.consents.size.toLong(),
                     page = 0,
                     size = user.consents.size,
@@ -116,20 +117,13 @@ class DataExportFacade(
         )
     }
 
-    private fun ExportJobStatus.toApiStatus(): com.r8n.backend.export.api.dto.ExportStatus =
+    private fun ExportJobStatus.toApiStatus(): ExportStatus =
         when (this) {
-            ExportJobStatus.PENDING -> com.r8n.backend.export.api.dto.ExportStatus.PENDING
-            ExportJobStatus.IN_PROGRESS -> com.r8n.backend.export.api.dto.ExportStatus.IN_PROGRESS
-            ExportJobStatus.COMPLETED -> com.r8n.backend.export.api.dto.ExportStatus.COMPLETED
-            ExportJobStatus.FAILED -> com.r8n.backend.export.api.dto.ExportStatus.FAILED
+            ExportJobStatus.PENDING -> ExportStatus.PENDING
+            ExportJobStatus.IN_PROGRESS -> ExportStatus.IN_PROGRESS
+            ExportJobStatus.COMPLETED -> ExportStatus.COMPLETED
+            ExportJobStatus.FAILED -> ExportStatus.FAILED
         }
-
-    private fun com.r8n.backend.users.api.dto.ConsentDto.toExportDto(): ConsentDto =
-        ConsentDto(
-            type = this.type,
-            accepted = this.accepted,
-            session = this.session,
-        )
 
     private fun updateExportStatus(
         userId: UUID,

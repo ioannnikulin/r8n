@@ -110,7 +110,6 @@ services:
       SERVICES_MOCK_PORT: ${SERVICES_MOCK_PORT:?}
       LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:?}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
-      SPRING_APPLICATION_JSON: '{"services":{"users":{"url":"${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}"},"mock":{"url":"${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}"}}}'
     networks:
       - r8n_net
     volumes:
@@ -118,6 +117,10 @@ services:
       - ./deployment/certs/internal:/certs:ro
     depends_on:
       - database
+      - users
+      - mock
+      - users
+      - mock
 
   gateway:
     build:
