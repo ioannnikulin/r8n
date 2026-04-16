@@ -7,11 +7,6 @@ server:
     key-store-type: ${SERVER_SSL_KEY_STORE_TYPE}
     key-alias: ${SERVER_SSL_KEY_ALIAS}
 
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.web.reactive: DEBUG
-
 spring:
   cloud:
     gateway:

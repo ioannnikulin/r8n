@@ -119,8 +119,6 @@ services:
       - database
       - users
       - mock
-      - users
-      - mock
 
   gateway:
     build:

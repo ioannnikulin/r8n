@@ -28,7 +28,7 @@ frontend_npx() { if command -v nvm >/dev/null 2>&1; then nvm exec $(FRONTEND_NOD
     prebuild-jars prepare-artifacts verify-artifacts docker-build docker-up \
     docker-certs docker-certs-force internal-certs internal-certs-force internal-certs-clean docker-certs-clean docker-secrets-clean docker-secrets-init edge-certs edge-certs-force \
     docker-down docker-logs clean-artifacts ensure-log-dirs clean-logs \
-    routed-request-opinion routed-request-mock routed-request-gdpr direct-request-opinion direct-request-mock \
+    routed-request-opinion routed-request-mock routed-request-gdpr direct-request-opinion direct-request-mock get-token \
     https-routed-request-opinion https-routed-request-mock https-routed-request-gdpr \
     docker-database-drop-volume-personal docker-database-drop-volume-campus docker-database-create-data-folder docker-database-run docker-database-connect \
     build-opinions who-ate-all-the-space clean-the-fuck-out-of-this-campus-machine \
@@ -333,7 +333,7 @@ routed-request-mock: ## Gateway request to mock (ENV=local|docker)
 	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
 	curl $$curl_args "$$protocol://$$host:$$port/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -H "Authorization: Bearer $$(cat .access_token)"
 
-routed-request-gdpr: ## HTTP direct request to users (ENV=local|docker)
+routed-request-gdpr: ## Gateway GDPR export request with timeout (ENV=local|docker)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token ENV=$(ENV); fi
 	@if [ "$(ENV)" = "docker" ]; then \
 		$(LOAD_DOCKER_ENV) \
@@ -346,9 +346,36 @@ routed-request-gdpr: ## HTTP direct request to users (ENV=local|docker)
 		host=$${GATEWAY_HOST:-localhost}; \
 		port=$${GATEWAY_PORT:-8080}; \
 	fi; \
-	curl_args="-i"; \
+	curl_args="-s"; \
 	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
-	curl $$curl_args "$$protocol://$$host:$$port/users/export" -H "Authorization: Bearer $$(cat .access_token)"
+	\
+	echo "=== Step 1: Starting GDPR export..."; \
+	curl $$curl_args -X POST "$$protocol://$$host:$$port/export/start" \
+		-H "Authorization: Bearer $$(cat .access_token)"; \
+	echo ""; \
+	\
+	echo "=== Step 2: Polling for export status (timeout 30s)..."; \
+	timeout=30; \
+	while [ $$timeout -gt 0 ]; do \
+		status=$$(curl $$curl_args "$$protocol://$$host:$$port/export/status" \
+			-H "Authorization: Bearer $$(cat .access_token)" | grep -o '"state":"[^"]*"' | cut -d'"' -f4); \
+		echo "Status: $$status ($$timeout s remaining)"; \
+		if [ "$$status" = "READY" ]; then \
+			break; \
+		fi; \
+		sleep 2; \
+		timeout=$$((timeout - 2)); \
+	done; \
+	\
+	if [ $$timeout -le 0 ]; then \
+		echo "Timeout waiting for export to be ready"; \
+		exit 1; \
+	fi; \
+	\
+	echo "=== Step 3: Downloading export data..."; \
+	curl $$curl_args "$$protocol://$$host:$$port/export/download" \
+		-H "Authorization: Bearer $$(cat .access_token)" | head -c 500; \
+	echo "..."
 
 direct-request-opinion: ## HTTP direct request to opinions (local)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi

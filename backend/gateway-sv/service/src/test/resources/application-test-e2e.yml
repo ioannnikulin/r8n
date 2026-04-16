@@ -10,7 +10,9 @@ server:
 spring:
   cloud:
     gateway:
-      routes:
+      server:
+        webflux:
+          routes:
         - id: opinions
           uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
           predicates:

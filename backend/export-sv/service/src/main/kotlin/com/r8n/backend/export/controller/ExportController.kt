@@ -13,46 +13,26 @@ import java.util.UUID
 class ExportController(
     private val dataExportFacade: DataExportFacade,
 ) : ExportApi {
-    override fun startGeneratingExportFor(userId: UUID): ResponseEntity<Void> {
-        // Verify the user is accessing their own data
+    private fun getAuthenticatedUserId(): UUID {
         val auth =
             SecurityContextHolder.getContext().authentication
                 ?: throw IllegalStateException("Not authenticated")
-        val authenticatedUserId = UUID.fromString(auth.name)
+        return UUID.fromString(auth.name)
+    }
 
-        if (authenticatedUserId != userId) {
-            throw SecurityException("Cannot start export for another user")
-        }
-
+    override fun startGeneratingExportFor(): ResponseEntity<Void> {
+        val userId = getAuthenticatedUserId()
         dataExportFacade.startExport(userId)
         return ResponseEntity.accepted().build()
     }
 
-    override fun checkIfDataIsReady(userId: UUID): ExportStateDto {
-        // Verify the user is accessing their own data
-        val auth =
-            SecurityContextHolder.getContext().authentication
-                ?: throw IllegalStateException("Not authenticated")
-        val authenticatedUserId = UUID.fromString(auth.name)
-
-        if (authenticatedUserId != userId) {
-            throw SecurityException("Cannot check export for another user")
-        }
-
+    override fun checkIfDataIsReady(): ExportStateDto {
+        val userId = getAuthenticatedUserId()
         return dataExportFacade.getExportStatus(userId)
     }
 
-    override fun downloadData(userId: UUID): UserCompleteDataDto {
-        // Verify the user is accessing their own data
-        val auth =
-            SecurityContextHolder.getContext().authentication
-                ?: throw IllegalStateException("Not authenticated")
-        val authenticatedUserId = UUID.fromString(auth.name)
-
-        if (authenticatedUserId != userId) {
-            throw SecurityException("Cannot download data for another user")
-        }
-
+    override fun downloadData(): UserCompleteDataDto {
+        val userId = getAuthenticatedUserId()
         return dataExportFacade.getExportData(userId)
     }
 }

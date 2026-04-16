@@ -1,17 +1,13 @@
-server:
-  port: ${SERVICES_EXPORT_PORT}
+server.port: ${SERVICES_EXPORT_PORT}
 
 spring:
-  application:
-    name: export-sv
+  application.name: export-sv
 
 services:
   users:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
-  mock:
-    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
 
-logging:
-  level:
-    com.r8n.backend.security: DEBUG
-    org.springframework.web.client: DEBUG
+r8n:
+  security:
+    jwt:
+      public-key: ${JWT_PUBLIC_KEY}

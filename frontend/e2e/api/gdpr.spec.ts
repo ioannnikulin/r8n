@@ -1,9 +1,9 @@
 import { test, expect } from "playwright/test";
 
 test.describe("GDPR / Export API", () => {
-  const EXPORT_START_PATH = "/export/users/00000000-0000-0000-0000-000000000000/start";
-  const EXPORT_STATUS_PATH = "/export/users/00000000-0000-0000-0000-000000000000/status";
-  const EXPORT_DOWNLOAD_PATH = "/export/users/00000000-0000-0000-0000-000000000000/download";
+  const EXPORT_START_PATH = "/export/start";
+  const EXPORT_STATUS_PATH = "/export/status";
+  const EXPORT_DOWNLOAD_PATH = "/export/download";
 
   test("should return 401 Unauthorized when no token is provided", async ({ request }) => {
     const response = await request.post(EXPORT_START_PATH);
@@ -14,7 +14,7 @@ test.describe("GDPR / Export API", () => {
     // 1. Login to get a valid token
     const loginResponse = await request.post("/auth/login", {
       data: {
-        login: "test",
+        login: "test@test.test",
         password: "1234",
       },
     });
