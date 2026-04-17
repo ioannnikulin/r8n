@@ -30,7 +30,7 @@ test.describe("GDPR / Export API", () => {
     });
     expect(startResponse.status()).toBe(202); // Accepted
 
-    // 3. Check status (with stub data, it should be immediately completed)
+    // 3. Check status (with stub data, it should be immediately ready)
     const statusResponse = await request.get(EXPORT_STATUS_PATH, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
