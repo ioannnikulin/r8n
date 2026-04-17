@@ -8,8 +8,25 @@ server:
     key-alias: ${SERVER_SSL_KEY_ALIAS}
 
 spring:
-  application:
-    name: export-sv
+  application.name: export-sv
+  liquibase:
+    enabled: true
+    change-log: db/changelog/db.changelog-master.sql
+    default-schema: export
+
+datasource:
+  driver-class-name: org.postgresql.Driver
+  url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_HOST_PORT}/${DATABASE_NAME}?currentSchema=export
+  username: ${DATABASE_USERNAME}
+  password: ${DATABASE_PASSWORD}
+
+jpa:
+  defer-datasource-initialization: false
+  hibernate:
+    ddl-auto: validate
+  sql:
+    init:
+      mode: never
 
 services:
   users:
@@ -21,8 +38,3 @@ r8n:
   security:
     jwt:
       public-key: ${JWT_PUBLIC_KEY}
-
-logging:
-  level:
-    com.r8n.backend.security: DEBUG
-    org.springframework.web.client: DEBUG
