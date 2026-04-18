@@ -1,5 +1,11 @@
 server:
   port: ${GATEWAY_PORT}
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED}
+    key-store: ${SERVER_SSL_KEY_STORE}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE}
+    key-alias: ${SERVER_SSL_KEY_ALIAS}
 
 spring:
   cloud:
