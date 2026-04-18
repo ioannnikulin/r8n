@@ -10,7 +10,9 @@ import java.util.UUID
 
 interface UsersInternalApi {
     companion object {
-        const val NAME_PATH = "/users/{id}/name"
+        const val ID_PATH = "/users/{id}"
+        const val NAME_PATH = "$ID_PATH/name"
+        const val SESSIONS_PATH = "$ID_PATH/sessions"
     }
 
     @GetMapping(NAME_PATH)
@@ -18,12 +20,12 @@ interface UsersInternalApi {
         @PathVariable id: UUID,
     ): String
 
-    @GetMapping("/users/{id}")
+    @GetMapping(ID_PATH)
     fun getUser(
         @PathVariable id: UUID,
     ): UserDto
 
-    @GetMapping("/users/{userId}/sessions")
+    @GetMapping(SESSIONS_PATH)
     fun getSessionsForUser(
         @PathVariable userId: UUID,
         page: PageRequestDto? = null,

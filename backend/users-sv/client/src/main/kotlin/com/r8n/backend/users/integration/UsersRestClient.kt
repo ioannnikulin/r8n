@@ -5,7 +5,9 @@ import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.users.api.dto.UserDto
 import com.r8n.backend.users.api.dto.UserSessionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
+import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.ID_PATH
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.NAME_PATH
+import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.SESSIONS_PATH
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.web.client.RestClient
 import java.util.UUID
@@ -23,7 +25,7 @@ class UsersRestClient(
     override fun getUser(id: UUID): UserDto =
         restClient
             .get()
-            .uri("/users/{id}", id)
+            .uri(ID_PATH, id)
             .retrieve()
             .body(UserDto::class.java)!!
 
@@ -35,7 +37,7 @@ class UsersRestClient(
             .get()
             .uri { uriBuilder ->
                 uriBuilder
-                    .path("/users/{userId}/sessions")
+                    .path(SESSIONS_PATH)
                     .queryParam("page", page?.page ?: 0)
                     .queryParam("size", page?.size ?: 20)
                     .build(userId)

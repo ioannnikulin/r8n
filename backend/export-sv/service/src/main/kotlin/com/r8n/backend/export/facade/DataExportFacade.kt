@@ -44,18 +44,18 @@ class DataExportFacade(
     }
 
     fun startExport(userId: UUID) {
-        logger.info("Starting export for user: $userId")
+        logger.debug("Starting export for user: $userId")
         exportJobs[userId] = ExportJob(userId, ExportJobStatus.PENDING, Instant.now())
 
         // For now, process synchronously to ensure security context is properly propagated
         // In a real implementation, this would be an async job
         try {
             updateExportStatus(userId, ExportJobStatus.IN_PROGRESS)
-            logger.info("Fetching user data for user: $userId")
+            logger.debug("Fetching user data for user: $userId")
             val data = getUserCompleteDataDto(userId)
-            logger.info("User data fetched successfully for user: $userId")
+            logger.debug("User data fetched successfully for user: $userId")
             completeExport(userId, data)
-            logger.info("Export completed successfully for user: $userId")
+            logger.debug("Export completed successfully for user: $userId")
         } catch (e: Exception) {
             logger.error("Export failed for user: $userId", e)
             failExport(userId)
@@ -91,7 +91,7 @@ class DataExportFacade(
 
     fun getUserCompleteDataDto(id: UUID): UserCompleteDataDto {
         val user = usersClient.getUser(id)
-        val sessions = usersClient.getSessionsForUser(id, PageRequestDto(0, 1000))
+        val sessions = usersClient.getSessionsForUser(id, PageRequestDto(0, Int.MAX_VALUE))
 
         return UserCompleteDataDto(
             id = user.id,
@@ -110,9 +110,9 @@ class DataExportFacade(
                     email = user.email,
                     sessions = sessions,
                 ),
-            opinions = opinionClient.getMineFull(PageRequestDto(0, 1000)),
-            outgoingRequests = outgoingAccessRequestClient.get(null, null, null, PageRequestDto(0, 1000)),
-            incomingRequests = incomingAccessRequestClient.get(null, null, null, PageRequestDto(0, 1000)),
+            opinions = opinionClient.getMineFull(PageRequestDto(0, Int.MAX_VALUE)),
+            outgoingRequests = outgoingAccessRequestClient.get(null, null, null, PageRequestDto(0, Int.MAX_VALUE)),
+            incomingRequests = incomingAccessRequestClient.get(null, null, null, PageRequestDto(0, Int.MAX_VALUE)),
             messages = messageClient.getSupportThreads(),
         )
     }

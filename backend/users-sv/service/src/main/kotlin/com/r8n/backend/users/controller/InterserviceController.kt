@@ -26,6 +26,7 @@ class InterserviceController(
     @PreAuthorize(Authority.IS_USER_OR_SERVICE)
     override fun getUserName(id: UUID) = userService.getName(id)
 
+    @PreAuthorize(Authority.IS_USER_OR_SERVICE)
     override fun getUser(id: UUID): UserDto {
         val user = userService.getUser(id)
         val consents = consentService.getConsentsForUser(id)
@@ -40,6 +41,7 @@ class InterserviceController(
         )
     }
 
+    @PreAuthorize(Authority.IS_USER_OR_SERVICE)
     override fun getSessionsForUser(
         userId: UUID,
         page: PageRequestDto?,
