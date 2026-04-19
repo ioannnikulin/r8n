@@ -7,7 +7,6 @@ import com.r8n.backend.users.api.dto.UserSessionDto
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.ID_PATH
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.NAME_PATH
-import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.SESSIONS_PATH
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.web.client.RestClient
 import java.util.UUID
@@ -35,12 +34,7 @@ class UsersRestClient(
     ): PageResponseDto<UserSessionDto> =
         restClient
             .get()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path(SESSIONS_PATH)
-                    .queryParam("page", page?.page ?: 0)
-                    .queryParam("size", page?.size ?: 20)
-                    .build(userId)
-            }.retrieve()
+            .uri("/users/$userId/sessions?page=${page?.page ?: 0}&size=${page?.size ?: 20}")
+            .retrieve()
             .body(object : ParameterizedTypeReference<PageResponseDto<UserSessionDto>>() {})!!
 }

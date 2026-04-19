@@ -91,7 +91,7 @@ class DataExportFacade(
 
     fun getUserCompleteDataDto(id: UUID): UserCompleteDataDto {
         val user = usersClient.getUser(id)
-        val sessions = usersClient.getSessionsForUser(id, PageRequestDto(0, Int.MAX_VALUE))
+        val sessions = usersClient.getSessionsForUser(id, PageRequestDto(0, 1000))
 
         return UserCompleteDataDto(
             id = user.id,
