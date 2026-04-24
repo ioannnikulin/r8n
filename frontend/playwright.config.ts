@@ -1,5 +1,9 @@
 import { defineConfig } from "@playwright/test";
 
+const uiUse = {
+  baseURL: "http://127.0.0.1:4173",
+};
+
 export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   use: {
@@ -7,10 +11,27 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "ui",
+      name: "ui-chromium",
       testDir: "./e2e/ui",
       use: {
-        baseURL: "http://127.0.0.1:4173",
+        ...uiUse,
+        browserName: "chromium",
+      },
+    },
+    {
+      name: "ui-firefox",
+      testDir: "./e2e/ui",
+      use: {
+        ...uiUse,
+        browserName: "firefox",
+      },
+    },
+    {
+      name: "ui-webkit",
+      testDir: "./e2e/ui",
+      use: {
+        ...uiUse,
+        browserName: "webkit",
       },
     },
     {
