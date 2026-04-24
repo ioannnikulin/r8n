@@ -1,40 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@font-face {
-  font-family: 'Geist Sans';
-  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Geist Sans';
-  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Geist Sans';
-  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Geist Sans';
-  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
 
 @layer base {
   :root {
@@ -78,9 +44,9 @@
     --sidebar-ring: 16 45% 42%;
 
     /* Custom tokens */
-    --font-display: 'DM Serif Display', serif;
-    --font-body: 'Geist Sans', system-ui, sans-serif;
-    --font-mono: 'Geist Mono', monospace;
+    --font-display: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 
     --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.03), 0 8px 10px -6px rgb(0 0 0 / 0.02);
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
