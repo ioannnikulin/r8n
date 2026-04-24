@@ -61,6 +61,7 @@ spring-context = { module = "org.springframework:spring-context", version.ref = 
 spring-data-commons = { module = "org.springframework.data:spring-data-commons", version.ref = "spring-boot" }
 spring-security-test = { module = "org.springframework.security:spring-security-test", version.ref = "spring" }
 spring-swagger = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc"}
+spring-swagger-webflux = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc"}
 spring-web = { module = "org.springframework:spring-web", version.ref = "spring-web" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers-jupiter" }

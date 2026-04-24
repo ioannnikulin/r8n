@@ -104,6 +104,9 @@ class SecurityAutoConfiguration {
         @Value("\${r8n.security.public-paths:}") publicPaths: Array<String>,
         @Value("\${server.ssl.enabled:false}") sslEnabled: Boolean,
     ): SecurityFilterChain {
+        val swaggerPaths = arrayOf("**/v3/api-docs/**", "**/swagger-ui/**", "**/swagger-ui.html")
+        val allPublicPaths = publicPaths + swaggerPaths
+
         val csrfHandler = CsrfTokenRequestAttributeHandler()
         // Set the name of the attribute the CsrfToken will be populated on
         csrfHandler.setCsrfRequestAttributeName("_csrf")
@@ -114,7 +117,7 @@ class SecurityAutoConfiguration {
                     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                     .csrfTokenRequestHandler(csrfHandler)
                     .ignoringRequestMatchers(
-                        *publicPaths
+                        *allPublicPaths
                             .filter { path ->
                                 path != "/api/auth/**" && path != "/api/auth/login"
                             }.toTypedArray(),
@@ -138,8 +141,8 @@ class SecurityAutoConfiguration {
                 maskingLoggingFilter,
                 UsernamePasswordAuthenticationFilter::class.java,
             ).authorizeHttpRequests { auth ->
-                if (publicPaths.isNotEmpty()) {
-                    auth.requestMatchers(*publicPaths).permitAll()
+                if (allPublicPaths.isNotEmpty()) {
+                    auth.requestMatchers(*allPublicPaths).permitAll()
                 }
                 auth.anyRequest().authenticated()
             }.oauth2ResourceServer { oauth ->

@@ -12,4 +12,5 @@ dependencies {
     implementation(platform(project(":platform")))
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.cloud.gateway)
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.2.0")
 }

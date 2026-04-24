@@ -16,11 +16,11 @@ spring:
             - id: auth
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
               predicates:
-                - Path=/api/auth/**
+                - Path=/api/auth/**,/api/users/v3/api-docs/**,/api/users/swagger-ui/**,/api/users/swagger-ui.html
             - id: opinions
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
               predicates:
-                - Path=/api/access-requests/**,/api/opinion-lists/**,/api/opinions/**
+                - Path=/api/access-requests/**,/api/opinion-lists/**,/api/opinions/**,/api/opinions/v3/api-docs/**,/api/opinions/swagger-ui/**,/api/opinions/swagger-ui.html
             - id: users
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
               predicates:
@@ -28,8 +28,21 @@ spring:
             - id: export
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_EXPORT_HOST}:${SERVICES_EXPORT_PORT}
               predicates:
-                - Path=/api/export/**
+                - Path=/api/export/**,/api/export/v3/api-docs/**,/api/export/swagger-ui/**,/api/export/swagger-ui.html
             - id: mock
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
               predicates:
-                - Path=/api/selectors/**
+                - Path=/api/selectors/**,/api/mock/v3/api-docs/**,/api/mock/swagger-ui/**,/api/mock/swagger-ui.html
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: users
+        url: /api/users/v3/api-docs
+      - name: opinions
+        url: /api/opinions/v3/api-docs
+      - name: export
+        url: /api/export/v3/api-docs
+      - name: mock
+        url: /api/mock/v3/api-docs
