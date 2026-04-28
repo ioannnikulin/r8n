@@ -3,6 +3,7 @@ import { clearSession, setSession } from "@/lib/auth/session";
 import { createHttpClient } from "@/lib/http-client";
 import { createAccessRequestsApi } from "@/lib/api/access-requests";
 import { createAuthApi } from "@/lib/api/auth";
+import { createMessagesApi } from "@/lib/api/messages";
 import { createOpinionListsApi } from "@/lib/api/opinion-lists";
 import { createOpinionsApi } from "@/lib/api/opinions";
 import { createSelectorsApi } from "@/lib/api/selectors";
@@ -517,6 +518,78 @@ describe("API modules", () => {
     expect(fetchMock.mock.calls[6][1]).toEqual(
       expect.objectContaining({ method: "GET" }),
     );
+  });
+
+  it("matches backend messaging routes and request bodies", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(createJsonResponse({})));
+    const client = createHttpClient({
+      baseUrl: "/api",
+      fetchFn: fetchMock,
+    });
+    const messagesApi = createMessagesApi(client);
+
+    await messagesApi.getThreads({
+      pageable: { page: 0, size: 20 },
+    });
+    await messagesApi.getThreadMessages({
+      pageable: { page: 1, size: 10 },
+      threadId: "11111111-1111-1111-1111-111111111111",
+    });
+    await messagesApi.createSupportThread({
+      initialMessage: "Need support",
+    });
+    await messagesApi.createDirectThread({
+      initialMessage: "Hello",
+      recipientUserId: "22222222-2222-2222-2222-222222222222",
+    });
+    await messagesApi.addThreadMessage({
+      text: "Follow up",
+      threadId: "33333333-3333-3333-3333-333333333333",
+    });
+    await messagesApi.markThreadRead({
+      threadId: "44444444-4444-4444-4444-444444444444",
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/messaging/threads?page=0&size=20");
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      "/api/messaging/threads/11111111-1111-1111-1111-111111111111/messages?page=1&size=10",
+    );
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/messaging/support/threads");
+    expect(fetchMock.mock.calls[3][0]).toBe("/api/messaging/direct/threads");
+    expect(fetchMock.mock.calls[4][0]).toBe(
+      "/api/messaging/threads/33333333-3333-3333-3333-333333333333/messages",
+    );
+    expect(fetchMock.mock.calls[5][0]).toBe(
+      "/api/messaging/threads/44444444-4444-4444-4444-444444444444/read",
+    );
+
+    expect(fetchMock.mock.calls[2][1]).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({ initialMessage: "Need support" }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock.mock.calls[3][1]).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({
+          initialMessage: "Hello",
+          recipientUserId: "22222222-2222-2222-2222-222222222222",
+        }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock.mock.calls[4][1]).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({ text: "Follow up" }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock.mock.calls[5][1]).toEqual(
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    const headers = new Headers(fetchMock.mock.calls[0][1].headers);
+    expect(headers.get("Authorization")).toBe("Bearer stub-access-token-123");
   });
 
   it("matches backend selector routes and path parameters", async () => {

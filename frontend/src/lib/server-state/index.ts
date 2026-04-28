@@ -4,6 +4,7 @@ export * from "@/lib/server-state/query-client";
 export * from "@/lib/server-state/query-keys";
 export * from "@/lib/server-state/hooks/access-requests";
 export * from "@/lib/server-state/hooks/auth";
+export * from "@/lib/server-state/hooks/messages";
 export * from "@/lib/server-state/hooks/opinion-lists";
 export * from "@/lib/server-state/hooks/opinions";
 export * from "@/lib/server-state/hooks/selectors";

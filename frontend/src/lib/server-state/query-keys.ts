@@ -16,6 +16,10 @@ import type {
   GetSelectorsForSubjectRequestDto,
   GetSelectorsForUrlRequestDto,
 } from "@/lib/api/selectors";
+import type {
+  GetMessageThreadsRequestDto,
+  GetThreadMessagesRequestDto,
+} from "@/lib/api/messages";
 
 export const opinionsKeys = {
   all: ["opinions"] as const,
@@ -64,6 +68,21 @@ export const accessRequestsKeys = {
   ] as const,
 };
 
+export const messagesKeys = {
+  all: ["messages"] as const,
+  threads: (request: GetMessageThreadsRequestDto) => [
+    "messages",
+    "threads",
+    request.pageable,
+  ] as const,
+  threadMessages: (request: GetThreadMessagesRequestDto) => [
+    "messages",
+    "thread-messages",
+    request.threadId,
+    request.pageable,
+  ] as const,
+};
+
 export const selectorsKeys = {
   all: ["selectors"] as const,
   forSubject: (request: GetSelectorsForSubjectRequestDto) => [
@@ -91,6 +110,7 @@ export const queryKeys = {
   opinions: opinionsKeys,
   opinionLists: opinionListsKeys,
   accessRequests: accessRequestsKeys,
+  messages: messagesKeys,
   selectors: selectorsKeys,
   users: usersKeys,
 };
