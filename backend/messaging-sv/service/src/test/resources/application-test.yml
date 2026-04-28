@@ -8,6 +8,27 @@ server:
     key-alias: ""
 spring:
   application.name: messaging-sv
+  liquibase:
+    enabled: true
+    change-log: db/changelog/db.changelog-master.sql
+    default-schema: messaging
+    contexts: test
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      initializationFailTimeout: 0
+      minimumIdle: 0
+      maximumPoolSize: 5
+      idleTimeout: 100
+      maxLifetime: 100
+      validationTimeout: 250
+      leakDetectionThreshold: 0
+  jpa:
+    defer-datasource-initialization: false
+    hibernate:
+      ddl-auto: validate
+  lifecycle:
+    timeout-per-shutdown-phase: 1s
 logging:
   level:
     root: ERROR

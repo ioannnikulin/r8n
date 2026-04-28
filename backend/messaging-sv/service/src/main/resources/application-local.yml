@@ -1,5 +1,22 @@
 spring:
   application.name: messaging-sv
+  liquibase:
+    enabled: true
+    change-log: db/changelog/db.changelog-master.sql
+    default-schema: messaging
+    contexts: local
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_HOST_PORT}/${DATABASE_NAME}?currentSchema=messaging
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    defer-datasource-initialization: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
 server:
   port: ${SERVICES_MESSAGING_PORT}
   ssl:
