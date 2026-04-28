@@ -1,5 +1,11 @@
 package com.r8n.backend.messaging
 
+import com.r8n.backend.messaging.domain.MessageAuthorRoleEnum
+import com.r8n.backend.messaging.domain.ThreadTypeEnum
+import com.r8n.backend.messaging.persistence.MessagePersistence
+import com.r8n.backend.messaging.persistence.ThreadPersistence
+import com.r8n.backend.messaging.provider.database.MessageRepository
+import com.r8n.backend.messaging.provider.database.ThreadRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -7,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.PageRequest
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.junit.jupiter.Container
@@ -34,6 +41,12 @@ class MessagingApplicationTests {
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
+
+    @Autowired
+    lateinit var threadRepository: ThreadRepository
+
+    @Autowired
+    lateinit var messageRepository: MessageRepository
 
     @Test
     fun contextLoads() {
@@ -154,6 +167,96 @@ class MessagingApplicationTests {
         )
     }
 
+    @Test
+    fun `repository finds visible threads newest first`() {
+        val currentUserId = UUID.randomUUID()
+        val otherUserId = UUID.randomUUID()
+        val hiddenUserId = UUID.randomUUID()
+        val olderThread =
+            threadRepository.save(
+                directThread(
+                    requesterUserId = currentUserId,
+                    recipientUserId = otherUserId,
+                    createdAt = Instant.parse("2026-01-01T09:00:00Z"),
+                    updatedAt = Instant.parse("2026-01-01T09:00:00Z"),
+                ),
+            )
+        val newerThread =
+            threadRepository.save(
+                supportThread(
+                    requesterUserId = currentUserId,
+                    createdAt = Instant.parse("2026-01-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-01-01T10:00:00Z"),
+                ),
+            )
+        threadRepository.save(
+            directThread(
+                requesterUserId = hiddenUserId,
+                recipientUserId = otherUserId,
+                createdAt = Instant.parse("2026-01-01T11:00:00Z"),
+                updatedAt = Instant.parse("2026-01-01T11:00:00Z"),
+            ),
+        )
+
+        val actual = threadRepository.findVisibleByUserId(currentUserId, PageRequest.of(0, 10)).content
+
+        assertEquals(listOf(newerThread.id, olderThread.id), actual.map { it.id })
+    }
+
+    @Test
+    fun `repository finds direct thread regardless of participant order`() {
+        val firstUserId = UUID.randomUUID()
+        val secondUserId = UUID.randomUUID()
+        val thread =
+            threadRepository.save(
+                directThread(
+                    requesterUserId = firstUserId,
+                    recipientUserId = secondUserId,
+                    createdAt = Instant.parse("2026-01-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-01-01T10:00:00Z"),
+                ),
+            )
+
+        val actual = threadRepository.findDirectThreadBetweenParticipants(secondUserId, firstUserId)
+
+        assertEquals(thread.id, actual?.id)
+    }
+
+    @Test
+    fun `repository finds messages by thread in chronological order`() {
+        val userId = UUID.randomUUID()
+        val thread =
+            threadRepository.save(
+                supportThread(
+                    requesterUserId = userId,
+                    createdAt = Instant.parse("2026-01-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-01-01T10:00:00Z"),
+                ),
+            )
+        val secondMessage =
+            messageRepository.save(
+                message(
+                    threadId = thread.id!!,
+                    authorUserId = userId,
+                    text = "second",
+                    createdAt = Instant.parse("2026-01-01T10:02:00Z"),
+                ),
+            )
+        val firstMessage =
+            messageRepository.save(
+                message(
+                    threadId = thread.id!!,
+                    authorUserId = userId,
+                    text = "first",
+                    createdAt = Instant.parse("2026-01-01T10:01:00Z"),
+                ),
+            )
+
+        val actual = messageRepository.findByThreadIdOrderByCreatedAtAsc(thread.id!!, PageRequest.of(0, 10)).content
+
+        assertEquals(listOf(firstMessage.id, secondMessage.id), actual.map { it.id })
+    }
+
     private fun insertDirectThread(
         threadId: UUID,
         requesterUserId: UUID,
@@ -183,4 +286,43 @@ class MessagingApplicationTests {
     }
 
     private fun count(sql: String): Int = jdbcTemplate.queryForObject(sql, Int::class.java) ?: 0
+
+    private fun supportThread(
+        requesterUserId: UUID,
+        createdAt: Instant,
+        updatedAt: Instant,
+    ) = ThreadPersistence(
+        type = ThreadTypeEnum.SUPPORT,
+        requesterUserId = requesterUserId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        requesterReadAt = createdAt,
+    )
+
+    private fun directThread(
+        requesterUserId: UUID,
+        recipientUserId: UUID,
+        createdAt: Instant,
+        updatedAt: Instant,
+    ) = ThreadPersistence(
+        type = ThreadTypeEnum.DIRECT,
+        requesterUserId = requesterUserId,
+        recipientUserId = recipientUserId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        requesterReadAt = createdAt,
+    )
+
+    private fun message(
+        threadId: UUID,
+        authorUserId: UUID,
+        text: String,
+        createdAt: Instant,
+    ) = MessagePersistence(
+        threadId = threadId,
+        authorUserId = authorUserId,
+        authorRole = MessageAuthorRoleEnum.USER,
+        text = text,
+        createdAt = createdAt,
+    )
 }
