@@ -1,0 +1,12 @@
+plugins {
+    id("convention-nonreactive-backend-service")
+}
+
+group = "com.r8n.backend"
+version = "0.0.1-SNAPSHOT"
+description = "manages user messaging"
+
+dependencies {
+    implementation(project(":messaging-api"))
+    implementation(project(":messaging-api-integration"))
+}

@@ -24,6 +24,11 @@ include("opinions-api-integration", "opinions-sv/api-integration")
 include("opinions-client", "opinions-sv/client")
 include("opinions-sv", "opinions-sv/service")
 
+include("messaging-api", "messaging-sv/api")
+include("messaging-api-integration", "messaging-sv/api-integration")
+include("messaging-client", "messaging-sv/client")
+include("messaging-sv", "messaging-sv/service")
+
 include("core:security")
 include("core:api")
 include("core:utils")
