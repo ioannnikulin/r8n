@@ -5,3 +5,7 @@ plugins {
 group = "com.r8n.backend.messaging"
 version = "0.0.1-SNAPSHOT"
 description = "messaging service API"
+
+dependencies {
+    implementation(project(":core:api"))
+}
