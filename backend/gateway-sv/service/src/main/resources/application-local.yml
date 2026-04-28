@@ -29,6 +29,10 @@ spring:
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_EXPORT_HOST}:${SERVICES_EXPORT_PORT}
               predicates:
                 - Path=/api/export/**
+            - id: messaging
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MESSAGING_HOST}:${SERVICES_MESSAGING_PORT}
+              predicates:
+                - Path=/api/messaging/**
             - id: mock
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
               predicates:
