@@ -123,6 +123,26 @@ services:
       - mock
       - opinions
 
+  messaging:
+    build:
+      context: ./deployment/messaging
+      dockerfile: Dockerfile
+    env_file:
+      - ./deployment/config/docker.env
+      - ./deployment/secrets/docker.secrets.env
+    environment:
+      <<: [*tls-common-env, *tls-client-common-env]
+      SERVICE_NAME: messaging
+      SERVER_SSL_KEY_STORE: /certs/keystore-messaging.p12
+      SERVICES_MESSAGING_PORT: ${SERVICES_MESSAGING_PORT:?}
+      LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:?}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+    networks:
+      - r8n_net
+    volumes:
+      - ./deployment/messaging/logs:/var/log/r8n
+      - ./deployment/certs/internal:/certs:ro
+
   gateway:
     build:
       context: ./deployment/gateway
@@ -155,6 +175,7 @@ services:
       - mock
       - users
       - export
+      - messaging
       - database
     networks:
       - r8n_net

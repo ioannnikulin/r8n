@@ -215,6 +215,7 @@ $(addprefix local-stop-,$(SERVICES)): local-stop-%: ## Stop one local backend se
 		opinions) port="$$SERVICES_OPINIONS_PORT" ;; \
 		mock) port="$$SERVICES_MOCK_PORT" ;; \
 		users) port="$$SERVICES_USERS_PORT" ;; \
+		messaging) port="$$SERVICES_MESSAGING_PORT" ;; \
 	esac; \
 	if [ -n "$$port" ] && command -v lsof >/dev/null 2>&1; then \
 		pids="$$(lsof -ti tcp:$$port 2>/dev/null || true)"; \

@@ -2,6 +2,10 @@ server:
   port: 0
   ssl:
     enabled: false
+    key-store: ""
+    key-store-password: ""
+    key-store-type: PKCS12
+    key-alias: ""
 spring:
   application.name: messaging-sv
 logging:
@@ -10,6 +14,7 @@ logging:
 r8n:
   security:
     jwt:
+      private-key: ""
       public-key: |
         -----BEGIN PUBLIC KEY-----
         MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsyZQ94kMeQ05/dkEWP7b
@@ -19,5 +24,4 @@ r8n:
         FqB22+XkhKEQDn68iPn+urcWdjAhXihQ8RknwBn72qaD845+O36qj74Q3s+iu5Au
         0h9eqIt3ecjtLNxwj5mqvp1Q1pmZyzX445o2713fRMcBmlGSVlcIywPvY06WXpD5
         qwIDAQAB
-        -----END PUBLIC KEY-----
         -----END PUBLIC KEY-----
