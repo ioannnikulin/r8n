@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Plus,
   SendHorizontal,
@@ -45,15 +47,9 @@ const FILTERS: Array<{ id: MessageFilter; label: string }> = [
   { id: "support", label: "Support" },
 ];
 
-const THREADS_PAGE = {
-  page: 0,
-  size: 50,
-};
+const THREADS_PAGE_SIZE = 2;
 
-const MESSAGES_PAGE = {
-  page: 0,
-  size: 100,
-};
+const MESSAGES_PAGE_SIZE = 5;
 
 function getDirectionMeta(own: boolean) {
   return own
@@ -97,12 +93,17 @@ const Messages = () => {
   const [activeFilter, setActiveFilter] = useState<MessageFilter>("all");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [isNewMessageDialogOpen, setIsNewMessageDialogOpen] = useState(false);
+  const [threadPage, setThreadPage] = useState(0);
+  const [messagePages, setMessagePages] = useState<Record<string, number>>({});
   const [newThreadType, setNewThreadType] = useState<NewThreadType>("support");
   const [newRecipientUserId, setNewRecipientUserId] = useState("");
   const [newMessage, setNewMessage] = useState("");
 
   const threadsQuery = useMessageThreads({
-    pageable: THREADS_PAGE,
+    pageable: {
+      page: threadPage,
+      size: THREADS_PAGE_SIZE,
+    },
   });
   const createSupportThread = useCreateSupportThreadMutation();
   const createDirectThread = useCreateDirectThreadMutation();
@@ -137,6 +138,13 @@ const Messages = () => {
         ? current.filter((id) => id !== threadId)
         : [...current, threadId],
     );
+  };
+
+  const updateMessagePage = (threadId: string, page: number) => {
+    setMessagePages((current) => ({
+      ...current,
+      [threadId]: Math.max(0, page),
+    }));
   };
 
   const updateDraft = (threadId: string, value: string) => {
@@ -217,7 +225,10 @@ const Messages = () => {
           <button
             key={filter.id}
             type="button"
-            onClick={() => setActiveFilter(filter.id)}
+            onClick={() => {
+              setActiveFilter(filter.id);
+              setThreadPage(0);
+            }}
             className={cn(
               "rounded-xl border px-4 py-2 text-sm font-medium transition-colors",
               activeFilter === filter.id
@@ -256,10 +267,19 @@ const Messages = () => {
               draft={drafts[thread.id] ?? ""}
               onDraftChange={(value) => updateDraft(thread.id, value)}
               onDraftSent={() => updateDraft(thread.id, "")}
+              messagePage={messagePages[thread.id] ?? 0}
+              onMessagePageChange={(page) => updateMessagePage(thread.id, page)}
               onToggle={() => toggleThread(thread.id)}
             />
           ))}
         </QueryState>
+        <PageControls
+          label="threads"
+          page={threadPage}
+          size={THREADS_PAGE_SIZE}
+          total={threadsQuery.data?.total ?? 0}
+          onPageChange={setThreadPage}
+        />
       </motion.section>
 
       <Dialog
@@ -353,19 +373,26 @@ function MessageThreadItem({
   isOpen,
   onDraftChange,
   onDraftSent,
+  onMessagePageChange,
   onToggle,
   thread,
+  messagePage,
 }: {
   draft: string;
   isOpen: boolean;
+  messagePage: number;
   onDraftChange: (value: string) => void;
   onDraftSent: () => void;
+  onMessagePageChange: (page: number) => void;
   onToggle: () => void;
   thread: ThreadSummaryDto;
 }) {
   const messagesQuery = useThreadMessages(
     {
-      pageable: MESSAGES_PAGE,
+      pageable: {
+        page: messagePage,
+        size: MESSAGES_PAGE_SIZE,
+      },
       threadId: thread.id,
     },
     {
@@ -495,6 +522,13 @@ function MessageThreadItem({
               ))}
             </div>
           </QueryState>
+          <PageControls
+            label={`messages for ${thread.participant.name}`}
+            page={messagePage}
+            size={MESSAGES_PAGE_SIZE}
+            total={messagesQuery.data?.total ?? 0}
+            onPageChange={onMessagePageChange}
+          />
           <div className="mt-5 border-t border-border/70 pt-4">
             <div className="rounded-2xl border border-border bg-background p-3">
               <Textarea
@@ -520,6 +554,58 @@ function MessageThreadItem({
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+function PageControls({
+  label,
+  onPageChange,
+  page,
+  size,
+  total,
+}: {
+  label: string;
+  onPageChange: (page: number) => void;
+  page: number;
+  size: number;
+  total: number;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / size));
+
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="rounded-xl"
+        disabled={page <= 0}
+        aria-label={`Previous ${label} page`}
+        onClick={() => onPageChange(page - 1)}
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Previous
+      </Button>
+      <span className="font-medium text-foreground">
+        {label.charAt(0).toUpperCase() + label.slice(1)} page {page + 1} of {totalPages}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="rounded-xl"
+        disabled={page >= totalPages - 1}
+        aria-label={`Next ${label} page`}
+        onClick={() => onPageChange(page + 1)}
+      >
+        Next
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }
 

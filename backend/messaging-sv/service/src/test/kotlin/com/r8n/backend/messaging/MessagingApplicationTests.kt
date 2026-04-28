@@ -118,6 +118,51 @@ class MessagingApplicationTests {
                 """.trimIndent(),
             ),
         )
+        assertEquals(
+            3,
+            count(
+                """
+                SELECT COUNT(*)
+                FROM messaging.threads
+                WHERE requester_user_id = '20202020-2020-2020-2020-202020202020'
+                  AND id IN (
+                      '70000000-0000-0000-0000-000000000001',
+                      '70000000-0000-0000-0000-000000000002',
+                      '70000000-0000-0000-0000-000000000003'
+                  )
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            3,
+            count(
+                """
+                SELECT COUNT(*)
+                FROM messaging.messages
+                WHERE thread_id = '70000000-0000-0000-0000-000000000001'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            20,
+            count(
+                """
+                SELECT COUNT(*)
+                FROM messaging.messages
+                WHERE thread_id = '70000000-0000-0000-0000-000000000002'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            1,
+            count(
+                """
+                SELECT COUNT(*)
+                FROM messaging.messages
+                WHERE thread_id = '70000000-0000-0000-0000-000000000003'
+                """.trimIndent(),
+            ),
+        )
     }
 
     @Test

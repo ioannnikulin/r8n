@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { PageResponseDto } from "@/lib/api/shared";
 import type { MessageDto, ThreadSummaryDto } from "@/lib/api/messages";
 import Messages from "@/pages/Messages";
 
@@ -8,13 +9,15 @@ const mocks = vi.hoisted(() => ({
   createSupportThreadMutate: vi.fn(),
   markThreadReadMutate: vi.fn(),
   sendThreadMessageMutate: vi.fn(),
+  threadRequests: [] as Array<{ pageable: { page: number; size: number } }>,
+  threadMessageRequests: [] as Array<{ pageable: { page: number; size: number }; threadId: string }>,
   threadsState: {
-    data: undefined as { items: ThreadSummaryDto[] } | undefined,
+    data: undefined as PageResponseDto<ThreadSummaryDto> | undefined,
     error: null as Error | null,
     isError: false,
     isLoading: false,
   },
-  messagesByThread: new Map<string, MessageDto[]>(),
+  messagesByThread: new Map<string, PageResponseDto<MessageDto>>(),
 }));
 
 vi.mock("@/lib/server-state", async () => {
@@ -34,23 +37,32 @@ vi.mock("@/lib/server-state", async () => {
       isPending: false,
       mutate: mocks.markThreadReadMutate,
     }),
-    useMessageThreads: () => ({
-      ...mocks.threadsState,
-      refetch: vi.fn(),
-    }),
+    useMessageThreads: (request: { pageable: { page: number; size: number } }) => {
+      mocks.threadRequests.push(request);
+      return {
+        ...mocks.threadsState,
+        refetch: vi.fn(),
+      };
+    },
     useSendThreadMessageMutation: () => ({
       isPending: false,
       mutate: mocks.sendThreadMessageMutate,
     }),
-    useThreadMessages: ({ threadId }: { threadId: string }) => ({
-      data: {
-        items: mocks.messagesByThread.get(threadId) ?? [],
-      },
-      error: null,
-      isError: false,
-      isLoading: false,
-      refetch: vi.fn(),
-    }),
+    useThreadMessages: (request: { pageable: { page: number; size: number }; threadId: string }) => {
+      mocks.threadMessageRequests.push(request);
+      return {
+        data: mocks.messagesByThread.get(request.threadId) ?? {
+          items: [],
+          page: request.pageable.page,
+          size: request.pageable.size,
+          total: 0,
+        },
+        error: null,
+        isError: false,
+        isLoading: false,
+        refetch: vi.fn(),
+      };
+    },
   };
 });
 
@@ -128,12 +140,24 @@ describe("Messages page", () => {
     mocks.createSupportThreadMutate.mockReset();
     mocks.markThreadReadMutate.mockReset();
     mocks.sendThreadMessageMutate.mockReset();
-    mocks.threadsState.data = { items: THREADS };
+    mocks.threadRequests = [];
+    mocks.threadMessageRequests = [];
+    mocks.threadsState.data = {
+      items: THREADS,
+      page: 0,
+      size: 2,
+      total: 3,
+    };
     mocks.threadsState.error = null;
     mocks.threadsState.isError = false;
     mocks.threadsState.isLoading = false;
     mocks.messagesByThread.clear();
-    mocks.messagesByThread.set("thread-direct", DIRECT_MESSAGES);
+    mocks.messagesByThread.set("thread-direct", {
+      items: DIRECT_MESSAGES,
+      page: 0,
+      size: 5,
+      total: 12,
+    });
   });
 
   it("shows the latest message in a collapsed thread and expands on click", () => {
@@ -163,6 +187,34 @@ describe("Messages page", () => {
     expect(screen.getByText("Support conversation")).toBeInTheDocument();
     expect(screen.queryByText("Conversation with Marta Keller")).not.toBeInTheDocument();
     expect(screen.queryByText("Conversation with Elena Rossi")).not.toBeInTheDocument();
+  });
+
+  it("requests another threads page when pagination advances", () => {
+    render(<Messages />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next threads page" }));
+
+    expect(mocks.threadRequests.at(-1)).toEqual({
+      pageable: {
+        page: 1,
+        size: 2,
+      },
+    });
+  });
+
+  it("requests another messages page inside an expanded thread", () => {
+    render(<Messages />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand thread with Marta Keller" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next messages for Marta Keller page" }));
+
+    expect(mocks.threadMessageRequests).toContainEqual({
+      pageable: {
+        page: 1,
+        size: 5,
+      },
+      threadId: "thread-direct",
+    });
   });
 
   it("sends a message through the mutation hook", () => {
@@ -240,7 +292,12 @@ describe("Messages page", () => {
 
     mocks.threadsState.isError = false;
     mocks.threadsState.error = null;
-    mocks.threadsState.data = { items: [] };
+    mocks.threadsState.data = {
+      items: [],
+      page: 0,
+      size: 2,
+      total: 0,
+    };
     rerender(<Messages />);
     expect(screen.getByText("No conversations yet.")).toBeInTheDocument();
   });
