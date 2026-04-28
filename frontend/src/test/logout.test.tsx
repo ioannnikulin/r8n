@@ -6,14 +6,46 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useLogoutMutation } from "@/lib/server-state";
+import type { ThreadSummaryDto } from "@/lib/api/messages";
 
 const {
   clearSessionMock,
   logoutMock,
+  messageThreads,
   navigateMock,
 } = vi.hoisted(() => ({
   clearSessionMock: vi.fn(),
   logoutMock: vi.fn(),
+  messageThreads: [
+    {
+      createdAt: "2026-01-01T09:00:00Z",
+      id: "thread-one",
+      lastMessageOwn: false,
+      lastMessagePreview: "Hello",
+      participant: {
+        name: "Marta",
+        role: "USER",
+        userId: "11111111-1111-1111-1111-111111111111",
+      },
+      type: "DIRECT",
+      unreadCount: 2,
+      updatedAt: "2026-01-01T10:00:00Z",
+    },
+    {
+      createdAt: "2026-01-01T09:00:00Z",
+      id: "thread-two",
+      lastMessageOwn: false,
+      lastMessagePreview: "Support",
+      participant: {
+        name: "R8N Support",
+        role: "SUPPORT",
+        userId: null,
+      },
+      type: "SUPPORT",
+      unreadCount: 1,
+      updatedAt: "2026-01-01T10:00:00Z",
+    },
+  ] satisfies ThreadSummaryDto[],
   navigateMock: vi.fn(),
 }));
 
@@ -43,6 +75,14 @@ vi.mock("@/lib/auth/session", () => ({
   refreshSession: vi.fn(),
   setSession: vi.fn(),
   subscribeSession: vi.fn(() => () => {}),
+}));
+
+vi.mock("@/lib/server-state/hooks/messages", () => ({
+  useMessageThreads: () => ({
+    data: {
+      items: messageThreads,
+    },
+  }),
 }));
 
 function renderWithQueryClient(ui: ReactNode, queryClient: QueryClient) {
@@ -150,5 +190,26 @@ describe("logout", () => {
 
     expect(clearSessionMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).toHaveBeenCalledWith("/login", { replace: true });
+  });
+
+  it("shows the messages unread badge from messaging server state", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
+    });
+
+    renderWithQueryClient(
+      <MemoryRouter initialEntries={["/"]}>
+        <SidebarProvider defaultOpen>
+          <AppSidebar />
+        </SidebarProvider>
+      </MemoryRouter>,
+      queryClient,
+    );
+
+    expect(screen.getByText("Messages")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Messages3" })).toBeInTheDocument();
   });
 });

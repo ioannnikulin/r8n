@@ -4,8 +4,7 @@ import logo from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import UserAvatar from "@/components/UserAvatar";
 import { useLocation } from "react-router-dom";
-import { getUnreadMessagesCount, MOCK_MESSAGE_THREADS } from "@/lib/messages";
-import { useLogoutMutation } from "@/lib/server-state";
+import { useLogoutMutation, useMessageThreads } from "@/lib/server-state";
 import { useMe } from "@/lib/server-state/hooks/users";
 import {
   Sidebar,
@@ -28,10 +27,19 @@ const mainItems = [
   { title: "Moderation", url: "/moderation/opinions", icon: ShieldCheck },
 ];
 
+const SIDEBAR_MESSAGES_PAGE = {
+  page: 0,
+  size: 50,
+};
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const unreadMessagesCount = getUnreadMessagesCount(MOCK_MESSAGE_THREADS);
+  const { data: messages } = useMessageThreads({
+    pageable: SIDEBAR_MESSAGES_PAGE,
+  });
+  const unreadMessagesCount =
+    messages?.items.reduce((sum, thread) => sum + thread.unreadCount, 0) ?? 0;
   const location = useLocation();
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation({
