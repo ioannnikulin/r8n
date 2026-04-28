@@ -1,14 +1,24 @@
 package com.r8n.backend.messaging
 
+import com.r8n.backend.core.api.PageRequestDto
+import com.r8n.backend.messaging.api.dto.CreateDirectThreadRequestDto
+import com.r8n.backend.messaging.api.dto.CreateSupportThreadRequestDto
+import com.r8n.backend.messaging.api.dto.CreateThreadMessageRequestDto
+import com.r8n.backend.messaging.api.dto.ThreadTypeEnumDto
 import com.r8n.backend.messaging.domain.MessageAuthorRoleEnum
 import com.r8n.backend.messaging.domain.ThreadTypeEnum
+import com.r8n.backend.messaging.facade.MessagingFacade
 import com.r8n.backend.messaging.persistence.MessagePersistence
 import com.r8n.backend.messaging.persistence.ThreadPersistence
 import com.r8n.backend.messaging.provider.database.MessageRepository
 import com.r8n.backend.messaging.provider.database.ThreadRepository
+import com.r8n.backend.messaging.service.MessagingService
+import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
@@ -16,6 +26,8 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.web.server.ResponseStatusException
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.postgresql.PostgreSQLContainer
@@ -47,6 +59,15 @@ class MessagingApplicationTests {
 
     @Autowired
     lateinit var messageRepository: MessageRepository
+
+    @Autowired
+    lateinit var messagingService: MessagingService
+
+    @Autowired
+    lateinit var messagingFacade: MessagingFacade
+
+    @MockitoBean
+    lateinit var usersInternalApi: UsersInternalApi
 
     @Test
     fun contextLoads() {
@@ -255,6 +276,117 @@ class MessagingApplicationTests {
         val actual = messageRepository.findByThreadIdOrderByCreatedAtAsc(thread.id!!, PageRequest.of(0, 10)).content
 
         assertEquals(listOf(firstMessage.id, secondMessage.id), actual.map { it.id })
+    }
+
+    @Test
+    fun `service creates support thread and calculates own unread count`() {
+        val requesterId = UUID.randomUUID()
+
+        val actual = messagingService.createSupportThread(requesterId, " hello support ")
+
+        assertEquals(ThreadTypeEnum.SUPPORT, actual.type)
+        assertEquals(requesterId, actual.requesterUserId)
+        assertEquals("hello support", actual.lastMessage?.text)
+        assertEquals(0, actual.unreadCount)
+    }
+
+    @Test
+    fun `service reuses direct thread and calculates unread count for recipient`() {
+        val requesterId = UUID.randomUUID()
+        val recipientId = UUID.randomUUID()
+
+        val thread = messagingService.createDirectThread(requesterId, recipientId, "first")
+        messagingService.sendMessage(requesterId, thread.id, "second")
+
+        val visibleToRecipient = messagingService.getVisibleThreads(recipientId, PageRequest.of(0, 10)).single()
+        assertEquals(thread.id, visibleToRecipient.id)
+        assertEquals(2, visibleToRecipient.unreadCount)
+
+        val reused = messagingService.createDirectThread(recipientId, requesterId, "reply")
+        assertEquals(thread.id, reused.id)
+        assertEquals(thread.id, threadRepository.findDirectThreadBetweenParticipants(requesterId, recipientId)?.id)
+    }
+
+    @Test
+    fun `service hides messages in threads not visible to requester`() {
+        val ownerId = UUID.randomUUID()
+        val strangerId = UUID.randomUUID()
+        val thread = messagingService.createSupportThread(ownerId, "private")
+
+        assertThrows(ResponseStatusException::class.java) {
+            messagingService.getMessages(strangerId, thread.id, PageRequest.of(0, 10))
+        }
+    }
+
+    @Test
+    fun `service marks direct thread read for recipient`() {
+        val requesterId = UUID.randomUUID()
+        val recipientId = UUID.randomUUID()
+        val thread = messagingService.createDirectThread(requesterId, recipientId, "hello")
+
+        assertEquals(1, messagingService.getVisibleThreads(recipientId, PageRequest.of(0, 10)).single().unreadCount)
+
+        val readThread = messagingService.markRead(recipientId, thread.id)
+
+        assertEquals(0, readThread.unreadCount)
+        assertEquals(0, messagingService.getVisibleThreads(recipientId, PageRequest.of(0, 10)).single().unreadCount)
+    }
+
+    @Test
+    fun `facade maps thread summary with username enrichment`() {
+        val requesterId = UUID.randomUUID()
+        val recipientId = UUID.randomUUID()
+        whenever(usersInternalApi.getUserName(any())).thenReturn("Direct Recipient")
+
+        val actual =
+            messagingFacade.createDirectThread(
+                requesterId,
+                CreateDirectThreadRequestDto(recipientUserId = recipientId, initialMessage = "hello"),
+            )
+
+        assertEquals(ThreadTypeEnumDto.DIRECT, actual.type)
+        assertEquals(recipientId, actual.participant.userId)
+        assertEquals("Direct Recipient", actual.participant.name)
+        assertEquals("hello", actual.lastMessagePreview)
+        assertEquals(true, actual.lastMessageOwn)
+    }
+
+    @Test
+    fun `facade maps messages with own flag and author names`() {
+        val requesterId = UUID.randomUUID()
+        val recipientId = UUID.randomUUID()
+        whenever(usersInternalApi.getUserName(requesterId)).thenReturn("Requester")
+        whenever(usersInternalApi.getUserName(recipientId)).thenReturn("Recipient")
+        val thread =
+            messagingFacade.createDirectThread(
+                requesterId,
+                CreateDirectThreadRequestDto(recipientUserId = recipientId, initialMessage = "hello"),
+            )
+        messagingFacade.addThreadMessage(
+            recipientId,
+            thread.id,
+            CreateThreadMessageRequestDto(text = "hi"),
+        )
+
+        val actual = messagingFacade.getThreadMessages(requesterId, thread.id, PageRequestDto(0, 10)).items
+
+        assertEquals(listOf("Requester", "Recipient"), actual.map { it.authorName })
+        assertEquals(listOf(true, false), actual.map { it.own })
+    }
+
+    @Test
+    fun `facade maps support participant without user lookup`() {
+        val requesterId = UUID.randomUUID()
+
+        val actual =
+            messagingFacade.createSupportThread(
+                requesterId,
+                CreateSupportThreadRequestDto(initialMessage = "support"),
+            )
+
+        assertEquals(ThreadTypeEnumDto.SUPPORT, actual.type)
+        assertEquals(null, actual.participant.userId)
+        assertEquals("R8N Support", actual.participant.name)
     }
 
     private fun insertDirectThread(

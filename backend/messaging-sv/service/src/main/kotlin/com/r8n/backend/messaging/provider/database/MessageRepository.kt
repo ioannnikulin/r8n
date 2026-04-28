@@ -11,4 +11,13 @@ interface MessageRepository : JpaRepository<MessagePersistence, UUID> {
         threadId: UUID,
         pageable: Pageable,
     ): Page<MessagePersistence>
+
+    fun findFirstByThreadIdOrderByCreatedAtDesc(threadId: UUID): MessagePersistence?
+
+    fun countByThreadIdAndCreatedAtAfter(
+        threadId: UUID,
+        createdAt: java.time.Instant,
+    ): Long
+
+    fun countByThreadId(threadId: UUID): Long
 }

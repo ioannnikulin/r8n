@@ -10,4 +10,6 @@ description = "manages user messaging"
 dependencies {
     implementation(project(":messaging-api"))
     implementation(project(":messaging-api-integration"))
+    implementation(project(":users-api-integration"))
+    implementation(project(":users-client"))
 }

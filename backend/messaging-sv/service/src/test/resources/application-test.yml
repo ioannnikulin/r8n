@@ -29,6 +29,9 @@ spring:
       ddl-auto: validate
   lifecycle:
     timeout-per-shutdown-phase: 1s
+services:
+  users:
+    url: http://localhost:8082
 logging:
   level:
     root: ERROR

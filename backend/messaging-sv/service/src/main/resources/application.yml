@@ -16,6 +16,9 @@ spring:
   sql:
     init:
       mode: never
+services:
+  users:
+    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
 server:
   port: ${SERVICES_MESSAGING_PORT}
   ssl:
