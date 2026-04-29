@@ -4,13 +4,13 @@ import com.r8n.backend.opinions.access.database.AccessRequestRepository
 import com.r8n.backend.opinions.access.domain.OpinionListPermissionEnum
 import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import com.r8n.backend.opinions.access.service.AccessService
-import com.r8n.backend.opinions.api.lists.dto.OpinionListSearchFiltersDto
 import com.r8n.backend.opinions.lists.database.OpinionListRepository
 import com.r8n.backend.opinions.lists.database.OpinionListSyncRepository
 import com.r8n.backend.opinions.lists.database.OpinionsToOpinionListsRepository
 import com.r8n.backend.opinions.lists.domain.OpinionList
 import com.r8n.backend.opinions.lists.domain.OpinionListInfo
 import com.r8n.backend.opinions.lists.domain.OpinionListPrivacyEnum
+import com.r8n.backend.opinions.lists.domain.OpinionListSearchFilters
 import com.r8n.backend.opinions.lists.domain.OpinionSummary
 import com.r8n.backend.opinions.lists.persistence.OpinionListPersistence
 import com.r8n.backend.opinions.lists.persistence.OpinionListSyncPersistence
@@ -388,33 +388,17 @@ class OpinionListService(
     @Transactional(readOnly = true)
     fun search(
         requesterId: UUID,
-        filters: OpinionListSearchFiltersDto,
+        filters: OpinionListSearchFilters,
         pageable: Pageable,
     ): Page<OpinionListInfo> {
-        val hasFilters =
-            !filters.nameSubstring.isNullOrBlank() ||
-                filters.authorId != null ||
-                !filters.authorNameSubstring.isNullOrBlank() ||
-                !filters.containsLocationSubstring.isNullOrBlank() ||
-                filters.someOpinionsYoungerThan != null ||
-                !filters.containsSubjectSubstring.isNullOrBlank() ||
-                !filters.findThisTextInAnyOfTheAbove.isNullOrBlank() ||
-                (filters.latitude != null && filters.longitude != null && filters.radiusInMeters != null)
-
-        if (!hasFilters) {
+        if (!hasFilters(filters)) {
             return Page.empty(pageable)
         }
 
-        val authorNameSubstring = filters.authorNameSubstring
-        val authorIdsFromName =
-            if (!authorNameSubstring.isNullOrBlank()) {
-                usersApi.findUsersByNameSubstring(authorNameSubstring).map { it.id }.toSet().ifEmpty { null }
-            } else {
-                null
-            }
+        val authorIdsFromName = getAuthorIdsFromName(filters.authorNameSubstring)
 
         // Base results from primary filters (name and author)
-        val baseListIds =
+        val resultIds =
             opinionListRepository
                 .searchIds(
                     nameSubstring = filters.nameSubstring?.trim()?.takeIf { it.isNotBlank() },
@@ -424,85 +408,87 @@ class OpinionListService(
                     searchablePrivacy = OpinionListPrivacyEnum.SEARCHABLE,
                 ).toMutableSet()
 
-        if (baseListIds.isEmpty()) {
-            return Page.empty(pageable)
-        }
-
-        val resultIds: MutableSet<UUID> = baseListIds
+        if (resultIds.isEmpty()) return Page.empty(pageable)
 
         // Apply additional filters as intersections
-        filters.containsLocationSubstring?.trim()?.takeIf { it.isNotBlank() }?.let { loc ->
-            val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(loc)
-            val listIds = if (referentIds.isNotEmpty()) {
-                val subjectIds = subjectRepository.findIdsByReferentIn(referentIds)
-                if (subjectIds.isNotEmpty()) {
-                    val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
-                    if (opinionIds.isNotEmpty()) {
-                        opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
-                    } else emptySet()
-                } else emptySet()
-            } else emptySet()
-            resultIds.retainAll(listIds)
-        }
-
+        filterByLocationSubstring(resultIds, filters.locationFilter?.containsLocationSubstring)
         if (resultIds.isEmpty()) return Page.empty(pageable)
 
-        filters.containsSubjectSubstring?.trim()?.takeIf { it.isNotBlank() }?.let { sub ->
-            val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(sub)
-            val listIds = if (subjectIds.isNotEmpty()) {
-                val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
-                if (opinionIds.isNotEmpty()) {
-                    opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
-                } else emptySet()
-            } else emptySet()
-            resultIds.retainAll(listIds)
-        }
-
+        filterBySubjectSubstring(resultIds, filters.containsSubjectSubstring)
         if (resultIds.isEmpty()) return Page.empty(pageable)
 
-        val lat = filters.latitude
-        val lng = filters.longitude
-        val radius = filters.radiusInMeters
+        filterByLocationRadius(resultIds, filters.locationFilter)
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        filterByYoungerThan(resultIds, filters.someOpinionsYoungerThan)
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        filterByTextInAny(resultIds, filters.findThisTextInAnyOfTheAbove, requesterId)
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        return opinionListRepository
+            .findAllByIdIn(resultIds, pageable)
+            .map { mapToOpinionListInfo(it) }
+    }
+
+    private fun hasFilters(filters: OpinionListSearchFilters): Boolean =
+        !filters.nameSubstring.isNullOrBlank() ||
+            filters.authorId != null ||
+            !filters.authorNameSubstring.isNullOrBlank() ||
+            !filters.locationFilter?.containsLocationSubstring.isNullOrBlank() ||
+            filters.someOpinionsYoungerThan != null ||
+            !filters.containsSubjectSubstring.isNullOrBlank() ||
+            !filters.findThisTextInAnyOfTheAbove.isNullOrBlank() ||
+            (filters.locationFilter?.latitude != null &&
+                filters.locationFilter.longitude != null &&
+                filters.locationFilter.radiusInMeters != null)
+
+    private fun getAuthorIdsFromName(authorNameSubstring: String?): Set<UUID>? =
+        if (!authorNameSubstring.isNullOrBlank()) {
+            usersApi.findUsersByNameSubstring(authorNameSubstring).map { it.id }.toSet().ifEmpty { null }
+        } else {
+            null
+        }
+
+    private fun filterByLocationSubstring(resultIds: MutableSet<UUID>, loc: String?) {
+        loc?.trim()?.takeIf { it.isNotBlank() }?.let { substring ->
+            val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(substring)
+            resultIds.retainAll(findListIdsByReferents(referentIds))
+        }
+    }
+
+    private fun filterBySubjectSubstring(resultIds: MutableSet<UUID>, sub: String?) {
+        sub?.trim()?.takeIf { it.isNotBlank() }?.let { substring ->
+            val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(substring)
+            resultIds.retainAll(findListIdsBySubjects(subjectIds))
+        }
+    }
+
+    private fun filterByLocationRadius(resultIds: MutableSet<UUID>, filter: com.r8n.backend.opinions.lists.domain.LocationFilter?) {
+        val lat = filter?.latitude
+        val lng = filter?.longitude
+        val radius = filter?.radiusInMeters
         if (lat != null && lng != null && radius != null) {
-            val referentIds = referentRepository.findIdsByLocationRadius(
-                lat,
-                lng,
-                radius
-            )
-            val listIds = if (referentIds.isNotEmpty()) {
-                val subjectIds = subjectRepository.findIdsByReferentIn(referentIds)
-                if (subjectIds.isNotEmpty()) {
-                    val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
-                    if (opinionIds.isNotEmpty()) {
-                        opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
-                    } else emptySet()
-                } else emptySet()
-            } else emptySet()
-            resultIds.retainAll(listIds)
+            val referentIds = referentRepository.findIdsByLocationRadius(lat, lng, radius)
+            resultIds.retainAll(findListIdsByReferents(referentIds))
         }
+    }
 
-        if (resultIds.isEmpty()) return Page.empty(pageable)
-
-        filters.someOpinionsYoungerThan?.let { youngerThan ->
-            val opinionIds = opinionRepository.findIdsByTimestampAfter(youngerThan)
-            val listIds = if (opinionIds.isNotEmpty()) {
-                opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
-            } else emptySet()
-            resultIds.retainAll(listIds)
+    private fun filterByYoungerThan(resultIds: MutableSet<UUID>, youngerThan: java.time.Instant?) {
+        youngerThan?.let { timestamp ->
+            val opinionIds = opinionRepository.findIdsByTimestampAfter(timestamp)
+            resultIds.retainAll(findListIdsByOpinions(opinionIds))
         }
+    }
 
-        if (resultIds.isEmpty()) return Page.empty(pageable)
-
-        filters.findThisTextInAnyOfTheAbove?.trim()?.takeIf { it.isNotBlank() }?.let { text ->
-            // Match any: name, subject name, or location address
-            // This is "Any of the above" so it's a UNION of these matches, then INTERSECTED with current resultIds
+    private fun filterByTextInAny(resultIds: MutableSet<UUID>, text: String?, requesterId: UUID) {
+        text?.trim()?.takeIf { it.isNotBlank() }?.let { substring ->
             val matchedListIds = mutableSetOf<UUID>()
 
-            // 1. Name match (we already have baseListIds which includes name matches if nameSubstring was set,
-            // but here we need to match 'text' against list names specifically)
+            // 1. Name match
             matchedListIds.addAll(
                 opinionListRepository.searchIds(
-                    nameSubstring = text,
+                    nameSubstring = substring,
                     authorId = null,
                     authorIds = null,
                     requesterId = requesterId,
@@ -511,43 +497,47 @@ class OpinionListService(
             )
 
             // 2. Subject name match
-            val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(text)
-            if (subjectIds.isNotEmpty()) {
-                val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
-                if (opinionIds.isNotEmpty()) {
-                    matchedListIds.addAll(opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds))
-                }
-            }
+            val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(substring)
+            matchedListIds.addAll(findListIdsBySubjects(subjectIds))
 
             // 3. Location match
-            val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(text)
-            if (referentIds.isNotEmpty()) {
-                val locSubjectIds = subjectRepository.findIdsByReferentIn(referentIds)
-                if (locSubjectIds.isNotEmpty()) {
-                    val locOpinionIds = opinionRepository.findIdsBySubjectIn(locSubjectIds)
-                    if (locOpinionIds.isNotEmpty()) {
-                        matchedListIds.addAll(opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(locOpinionIds))
-                    }
-                }
-            }
+            val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(substring)
+            matchedListIds.addAll(findListIdsByReferents(referentIds))
 
             resultIds.retainAll(matchedListIds)
         }
+    }
 
-        if (resultIds.isEmpty()) return Page.empty(pageable)
+    private fun findListIdsByReferents(referentIds: Set<UUID>): Set<UUID> =
+        if (referentIds.isNotEmpty()) {
+            findListIdsBySubjects(subjectRepository.findIdsByReferentIn(referentIds))
+        } else {
+            emptySet()
+        }
 
-        return opinionListRepository
-            .findAllByIdIn(resultIds, pageable)
-            .map { list ->
-                OpinionListInfo(
-                    id = list.id!!,
-                    name = list.name,
-                    owner = list.owner,
-                    privacy = list.privacy,
-                    opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
-                    grantedAccessCount = accessService.countAcceptedForList(list.id!!),
-                )
-            }
+    private fun findListIdsBySubjects(subjectIds: Set<UUID>): Set<UUID> =
+        if (subjectIds.isNotEmpty()) {
+            findListIdsByOpinions(opinionRepository.findIdsBySubjectIn(subjectIds))
+        } else {
+            emptySet()
+        }
+
+    private fun findListIdsByOpinions(opinionIds: Set<UUID>): Set<UUID> =
+        if (opinionIds.isNotEmpty()) {
+            opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
+        } else {
+            emptySet()
+        }
+
+    private fun mapToOpinionListInfo(list: OpinionListPersistence): OpinionListInfo {
+        return OpinionListInfo(
+            id = list.id!!,
+            name = list.name,
+            owner = list.owner,
+            privacy = list.privacy,
+            opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
+            grantedAccessCount = accessService.countAcceptedForList(list.id!!),
+        )
     }
 
     private companion object {

@@ -11,6 +11,7 @@ import com.r8n.backend.opinions.api.lists.dto.OpinionListPrivacyEnumDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSearchFiltersDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import com.r8n.backend.opinions.lists.domain.OpinionListPrivacyEnum
+import com.r8n.backend.opinions.lists.domain.OpinionListSearchFilters
 import com.r8n.backend.opinions.lists.service.OpinionListService
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -70,7 +71,7 @@ class OpinionListFacade(
         opinionListService
             .search(
                 requesterId = requesterId,
-                filters = filters,
+                filters = filters.toDomain(),
                 pageable = pageable.toPageable(),
             ).map { opinionListMapper.toSummaryDto(it) }
             .toResponse()
@@ -124,5 +125,23 @@ class OpinionListFacade(
                 OpinionListPrivacyEnumDto.PRIVATE -> OpinionListPrivacyEnum.PRIVATE
                 OpinionListPrivacyEnumDto.SEARCHABLE -> OpinionListPrivacyEnum.SEARCHABLE
             }
+
+        fun OpinionListSearchFiltersDto.toDomain() =
+            OpinionListSearchFilters(
+                nameSubstring = nameSubstring,
+                authorId = authorId,
+                authorNameSubstring = authorNameSubstring,
+                someOpinionsYoungerThan = someOpinionsYoungerThan,
+                containsSubjectSubstring = containsSubjectSubstring,
+                locationFilter = locationFilter?.let {
+                    com.r8n.backend.opinions.lists.domain.LocationFilter(
+                        containsLocationSubstring = it.containsLocationSubstring,
+                        latitude = it.latitude,
+                        longitude = it.longitude,
+                        radiusInMeters = it.radiusInMeters,
+                    )
+                },
+                findThisTextInAnyOfTheAbove = findThisTextInAnyOfTheAbove,
+            )
     }
 }
