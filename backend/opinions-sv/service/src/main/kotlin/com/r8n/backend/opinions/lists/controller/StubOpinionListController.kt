@@ -63,10 +63,9 @@ class StubOpinionListController(
         authorId: UUID?,
         authorNameSubstring: String?,
         pageable: PageRequestDto,
-    ) = opinionListFacade.searchAccessible(
+    ) = opinionListFacade.searchOpinionListsByName(
+        nameSubstring = nameSubstring ?: "",
         requesterId = getCurrentUserId(),
-        nameSubstring = nameSubstring,
-        authorId = authorId,
         pageable = pageable,
     )
 

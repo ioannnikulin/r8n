@@ -8,7 +8,6 @@ import com.r8n.backend.opinions.lists.domain.OpinionList
 import com.r8n.backend.opinions.lists.domain.OpinionListInfo
 import com.r8n.backend.opinions.lists.domain.OpinionListPrivacyEnum
 import com.r8n.backend.opinions.lists.domain.OpinionSummary
-import com.r8n.backend.opinions.lists.persistence.OpinionListPersistence
 import com.r8n.backend.opinions.opinions.facade.OpinionMapper
 import com.r8n.backend.opinions.opinions.service.SubjectService
 import com.r8n.backend.users.integration.api.UsersInternalApi

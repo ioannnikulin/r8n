@@ -2,7 +2,6 @@ package com.r8n.backend.opinions.lists.service
 
 import com.r8n.backend.opinions.access.database.AccessRequestRepository
 import com.r8n.backend.opinions.access.domain.OpinionListPermissionEnum
-import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import com.r8n.backend.opinions.access.service.AccessService
 import com.r8n.backend.opinions.lists.database.OpinionListRepository
 import com.r8n.backend.opinions.lists.database.OpinionListSyncRepository
@@ -348,19 +347,18 @@ class OpinionListService(
             .map { getList(it.id!!, ownerId) }
 
     @Transactional(readOnly = true)
-    fun searchAccessible(
+    fun searchOpinionListsByName(
+        nameSubstring: String,
         requesterId: UUID,
-        nameSubstring: String?,
-        authorId: UUID?,
         pageable: Pageable,
     ): Page<OpinionListInfo> {
-        val trimmedName = nameSubstring?.trim().takeIf { !it.isNullOrEmpty() } ?: return Page.empty(pageable)
+        val trimmedName = nameSubstring.trim().takeIf { it.isNotEmpty() } ?: return Page.empty(pageable)
 
         return opinionListRepository
-            .searchAccessible(
-                requesterId = requesterId,
+            .findByNameContainingIgnoreCaseAndPrivacyFilter(
                 nameSubstring = trimmedName,
-                authorId = authorId,
+                requesterId = requesterId,
+                searchablePrivacy = OpinionListPrivacyEnum.SEARCHABLE,
                 pageable = pageable,
             ).map { list ->
                 OpinionListInfo(
