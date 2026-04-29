@@ -1,11 +1,17 @@
 package com.r8n.backend.opinions.api.opinions
 
+import com.r8n.backend.core.api.PageRequestDto
+import com.r8n.backend.core.api.PageResponseDto
+import com.r8n.backend.opinions.api.opinions.dto.ModerationDecisionDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionDto
+import com.r8n.backend.opinions.api.opinions.dto.RejectOpinionRequestDto
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import java.util.UUID
 
@@ -17,6 +23,11 @@ interface OpinionsApi {
         const val CREATE_PATH = ROOT_PATH
         const val UPDATE_PATH = "$ROOT_PATH/{opinionId}"
         const val DELETE_PATH = "$ROOT_PATH/{opinionId}"
+        const val SUBMIT_FOR_MODERATION_PATH = "$ROOT_PATH/{opinionId}/submit-for-moderation"
+        const val MODERATION_PATH = "$ROOT_PATH/moderation"
+        const val MODERATION_DECISIONS_PATH = "$ROOT_PATH/moderation/decisions"
+        const val APPROVE_PATH = "$ROOT_PATH/{opinionId}/approve"
+        const val REJECT_PATH = "$ROOT_PATH/{opinionId}/reject"
         const val LINK_PATH = "$ROOT_PATH/link"
         const val UNLINK_PATH = "$ROOT_PATH/unlink/{linkId}"
         const val ADJUST_WEIGHT_PATH = "$ROOT_PATH/adjust-weight/{linkId}"
@@ -59,6 +70,36 @@ interface OpinionsApi {
     fun deleteOpinion(
         @PathVariable opinionId: UUID,
     )
+
+    @PostMapping(SUBMIT_FOR_MODERATION_PATH)
+    fun submitOpinionForModeration(
+        @PathVariable opinionId: UUID,
+    ): OpinionDto
+
+    @GetMapping(MODERATION_PATH)
+    fun getModerationOpinions(
+        @Valid
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionDto>
+
+    @GetMapping(MODERATION_DECISIONS_PATH)
+    fun getModerationDecisions(
+        @Valid
+        pageable: PageRequestDto,
+    ): PageResponseDto<ModerationDecisionDto>
+
+    @PostMapping(APPROVE_PATH)
+    fun approveOpinion(
+        @PathVariable opinionId: UUID,
+    ): OpinionDto
+
+    @PostMapping(REJECT_PATH)
+    fun rejectOpinion(
+        @PathVariable opinionId: UUID,
+        @Valid
+        @RequestBody
+        request: RejectOpinionRequestDto,
+    ): OpinionDto
 
     @PostMapping(LINK_PATH)
     fun linkComponent(

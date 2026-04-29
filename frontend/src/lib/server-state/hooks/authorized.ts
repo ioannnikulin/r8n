@@ -7,7 +7,7 @@ import type {
 } from "@tanstack/react-query";
 
 const IS_E2E_AUTH_BYPASS_ENABLED =
-  import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
+  import.meta.env.DEV && import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
 
 export function useAuthorizedQuery<TData, TError = Error, TQueryKey extends readonly unknown[] = readonly unknown[]>(
   options: Omit<UseQueryOptions<TData, TError, TData, TQueryKey>, "queryFn"> & {

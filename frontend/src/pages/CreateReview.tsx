@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useMyOpinionLists, useLinkOpinionToListMutation } from "@/lib/server-state/hooks/opinion-lists";
-import { useCreateOpinionMutation } from "@/lib/server-state/hooks/opinions";
+import { useCreateOpinionMutation, useSubmitOpinionForModerationMutation } from "@/lib/server-state/hooks/opinions";
 import { useCreateSubjectMutation, useFindSubjects, useSetPrimaryReferentMutation } from "@/lib/server-state/hooks/subjects";
 import { useCreateReferentMutation, useFindReferents } from "@/lib/server-state/hooks/referents";
 import type { Uuid } from "@/lib/api/shared";
@@ -239,6 +239,7 @@ const CreateReview = () => {
 
   const createOpinion = useCreateOpinionMutation();
   const linkOpinion = useLinkOpinionToListMutation();
+  const submitOpinion = useSubmitOpinionForModerationMutation();
   const findSubjects = useFindSubjects(
     {
       query: subjectName.trim() || undefined,
@@ -250,7 +251,7 @@ const CreateReview = () => {
   const createSubject = useCreateSubjectMutation();
   const setPrimaryReferent = useSetPrimaryReferentMutation();
 
-  const isSubmitting = createOpinion.isPending || linkOpinion.isPending;
+  const isSubmitting = createOpinion.isPending || linkOpinion.isPending || submitOpinion.isPending;
 
   useEffect(() => {
     const listId = searchParams.get("listId");
@@ -307,6 +308,8 @@ const CreateReview = () => {
       if (selectedList) {
         await linkOpinion.mutateAsync({ listId: selectedList, opinionId: opinion.id });
       }
+
+      await submitOpinion.mutateAsync({ opinionId: opinion.id });
 
       navigate("/");
     } catch {
@@ -459,7 +462,7 @@ const CreateReview = () => {
           {/* Submit */}
           <div className="flex gap-3 pt-2">
             <Button type="submit" className="rounded-xl px-8" disabled={isSubmitting}>
-              {isSubmitting ? "Saving…" : "Publish Review"}
+              {isSubmitting ? "Submitting…" : "Submit for Review"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => navigate("/")} className="rounded-xl" disabled={isSubmitting}>
               Cancel

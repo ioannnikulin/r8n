@@ -1,12 +1,19 @@
 import type { HttpClient } from "@/lib/http-client";
 import { httpClient } from "@/lib/http-client";
-import type { Uuid } from "@/lib/api/shared";
+import {
+  createPageQuery,
+  type PageRequestDto,
+  type PageResponseDto,
+  type Uuid,
+} from "@/lib/api/shared";
 
 export type OpinionStatusEnumDto =
   | "DRAFT"
   | "PENDING_PREMODERATION"
   | "PUBLISHED"
   | "REJECTED";
+
+export type ModerationDecisionActionDto = "APPROVED" | "REJECTED";
 
 export interface WeightedOpinionReferenceDto {
   id: Uuid;
@@ -52,6 +59,20 @@ export interface OpinionDto {
   timestamp: string;
 }
 
+export interface ModerationDecisionDto {
+  action: ModerationDecisionActionDto;
+  createdAt: string;
+  id: Uuid;
+  moderatorId: Uuid;
+  moderatorName: string;
+  newStatus: OpinionStatusEnumDto;
+  opinionId: Uuid;
+  ownerName: string;
+  previousStatus: OpinionStatusEnumDto;
+  reason: string | null;
+  subjectName: string;
+}
+
 export interface GetOpinionByIdRequestDto {
   id: Uuid;
 }
@@ -76,6 +97,27 @@ export interface UpdateOpinionRequestDto {
 
 export interface DeleteOpinionRequestDto {
   opinionId: Uuid;
+}
+
+export interface SubmitOpinionForModerationRequestDto {
+  opinionId: Uuid;
+}
+
+export interface GetModerationOpinionsRequestDto {
+  pageable: PageRequestDto;
+}
+
+export interface GetModerationDecisionsRequestDto {
+  pageable: PageRequestDto;
+}
+
+export interface ModerateOpinionRequestDto {
+  opinionId: Uuid;
+}
+
+export interface RejectOpinionRequestDto {
+  opinionId: Uuid;
+  reason: string;
 }
 
 export interface LinkOpinionComponentRequestDto {
@@ -124,6 +166,17 @@ export function createOpinionsApi(client: HttpClient = httpClient) {
       });
     },
 
+    submitForModeration(
+      request: SubmitOpinionForModerationRequestDto,
+    ): Promise<OpinionDto> {
+      return client.post<OpinionDto>(
+        `/opinions/${request.opinionId}/submit-for-moderation`,
+        {
+          auth: "required",
+        },
+      );
+    },
+
     getById(request: GetOpinionByIdRequestDto): Promise<OpinionDto> {
       return client.get<OpinionDto>(`/opinions/${request.id}`, {
         auth: "required",
@@ -135,6 +188,42 @@ export function createOpinionsApi(client: HttpClient = httpClient) {
     ): Promise<OpinionDto> {
       return client.get<OpinionDto>(`/opinions/for/${request.subjectId}`, {
         auth: "required",
+      });
+    },
+
+    getModerationQueue(
+      request: GetModerationOpinionsRequestDto,
+    ): Promise<PageResponseDto<OpinionDto>> {
+      return client.get<PageResponseDto<OpinionDto>>("/opinions/moderation", {
+        auth: "required",
+        query: createPageQuery(request.pageable),
+      });
+    },
+
+    getModerationDecisions(
+      request: GetModerationDecisionsRequestDto,
+    ): Promise<PageResponseDto<ModerationDecisionDto>> {
+      return client.get<PageResponseDto<ModerationDecisionDto>>(
+        "/opinions/moderation/decisions",
+        {
+          auth: "required",
+          query: createPageQuery(request.pageable),
+        },
+      );
+    },
+
+    approve(request: ModerateOpinionRequestDto): Promise<OpinionDto> {
+      return client.post<OpinionDto>(`/opinions/${request.opinionId}/approve`, {
+        auth: "required",
+      });
+    },
+
+    reject(request: RejectOpinionRequestDto): Promise<OpinionDto> {
+      return client.post<OpinionDto>(`/opinions/${request.opinionId}/reject`, {
+        auth: "required",
+        body: {
+          reason: request.reason,
+        },
       });
     },
 

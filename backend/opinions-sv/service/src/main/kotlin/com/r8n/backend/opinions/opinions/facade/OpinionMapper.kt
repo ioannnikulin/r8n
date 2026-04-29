@@ -1,9 +1,13 @@
 package com.r8n.backend.opinions.opinions.facade
 
+import com.r8n.backend.opinions.api.opinions.dto.ModerationDecisionActionDto
+import com.r8n.backend.opinions.api.opinions.dto.ModerationDecisionDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionRowDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionStatusEnumDto
 import com.r8n.backend.opinions.api.opinions.dto.WeightedOpinionReferenceDto
+import com.r8n.backend.opinions.opinions.domain.ModerationDecision
+import com.r8n.backend.opinions.opinions.domain.ModerationDecisionAction
 import com.r8n.backend.opinions.opinions.domain.Opinion
 import com.r8n.backend.opinions.opinions.domain.OpinionStatusEnum
 import com.r8n.backend.opinions.opinions.domain.WeightedOpinionReference
@@ -30,6 +34,29 @@ class OpinionMapper(
                 status.toDto(),
                 timestamp,
             )
+        }
+
+    fun toDto(decision: ModerationDecision): ModerationDecisionDto =
+        with(decision) {
+            ModerationDecisionDto(
+                id = id,
+                opinionId = opinionId,
+                subjectName = subjectName,
+                ownerName = usersInternalApi.getUserName(owner),
+                moderatorId = moderator,
+                moderatorName = usersInternalApi.getUserName(moderator),
+                action = action.toDto(),
+                previousStatus = previousStatus.toDto(),
+                newStatus = newStatus.toDto(),
+                reason = reason,
+                createdAt = createdAt,
+            )
+        }
+
+    private fun ModerationDecisionAction.toDto(): ModerationDecisionActionDto =
+        when (this) {
+            ModerationDecisionAction.APPROVED -> ModerationDecisionActionDto.APPROVED
+            ModerationDecisionAction.REJECTED -> ModerationDecisionActionDto.REJECTED
         }
 
     fun OpinionStatusEnum.toDto(): OpinionStatusEnumDto =
