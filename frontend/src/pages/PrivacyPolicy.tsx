@@ -183,6 +183,13 @@ const PrivacyPolicy = () => {
               analytics, and authentication providers. These services have access to your
               information only to perform specific tasks on our behalf.
             </p>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              <strong className="text-foreground">Address Lookup:</strong> When you type an address
+              while creating a new place or brand, the text you enter is sent to Photon, an
+              open-source geocoding service operated by komoot GmbH (Germany), to provide address
+              suggestions. Photon uses OpenStreetMap data. We do not store the queries on our side;
+              komoot may retain request logs as described in their service.
+            </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               We do not sell your personal information to third parties for their marketing purposes.
             </p>

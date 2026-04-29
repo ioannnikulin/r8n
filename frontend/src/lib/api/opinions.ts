@@ -40,6 +40,7 @@ export interface OpinionSummaryDto {
   longitude?: number | null;
   opinions: OpinionRowDto[];
   ownMark: number | null;
+  referentName?: string | null;
   subject: Uuid;
   subjectName: string;
 }

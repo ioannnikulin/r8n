@@ -18,6 +18,7 @@ data class OpinionRowDto(
 data class OpinionSummaryDto(
     val subject: UUID,
     val subjectName: String,
+    val referentName: String? = null,
     val address: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
