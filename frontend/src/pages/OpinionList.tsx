@@ -446,19 +446,10 @@ const LinkOpinionDialog = ({
   onClose: () => void;
   listId: Uuid;
 }) => {
-  const [opinionId, setOpinionId] = useState("");
   const [subjectQuery, setSubjectQuery] = useState("");
-  const linkOpinion = useLinkOpinionToListMutation({
-    onSuccess: () => {
-      setOpinionId("");
-      setSubjectQuery("");
-      onClose();
-    },
-  });
 
   const importOpinion = useLinkMyOpinionForSubjectToListMutation({
     onSuccess: () => {
-      setOpinionId("");
       setSubjectQuery("");
       onClose();
     },
@@ -471,11 +462,6 @@ const LinkOpinionDialog = ({
   );
   const subjectResults = subjectsData?.items ?? [];
 
-  const handleSubmit = () => {
-    if (!opinionId.trim()) return;
-    linkOpinion.mutate({ listId, opinionId: opinionId.trim() });
-  };
-
   const handleImport = (subjectId: Uuid) => {
     importOpinion.mutate({ listId, subjectId });
   };
@@ -487,16 +473,6 @@ const LinkOpinionDialog = ({
           <DialogTitle>Link existing opinion</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Opinion ID</label>
-            <Input
-              placeholder="Paste opinion UUID…"
-              value={opinionId}
-              onChange={(e) => setOpinionId(e.target.value)}
-              className="text-xs font-mono"
-            />
-          </div>
-
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">Import my opinion by subject</label>
             <Input
@@ -538,13 +514,6 @@ const LinkOpinionDialog = ({
         </div>
         <DialogFooter>
           <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-          <Button
-            size="sm"
-            disabled={!opinionId.trim() || linkOpinion.isPending}
-            onClick={handleSubmit}
-          >
-            Link
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

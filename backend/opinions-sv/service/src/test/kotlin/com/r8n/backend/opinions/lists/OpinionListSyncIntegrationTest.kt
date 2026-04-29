@@ -361,7 +361,7 @@ class OpinionListSyncIntegrationTest {
 
     @Test
     fun `syncing with private list without access should return not found`() {
-        // Bernard has a private list l23
+        // Bernard has a private list l24
         val l23Id = UUID.fromString("80000000-0000-0000-0000-000000000223")
 
         // Anna tries to sync her list l11 with Bernard's private list l23
