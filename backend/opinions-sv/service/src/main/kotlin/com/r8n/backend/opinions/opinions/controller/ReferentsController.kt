@@ -14,7 +14,7 @@ class ReferentsController(
 ) : ReferentsApi {
     @PreAuthorize(IS_USER)
     override fun findReferents(
-        query: String,
+        query: String?,
         pageable: PageRequestDto,
     ) = referentFacade.findReferents(query, pageable)
 

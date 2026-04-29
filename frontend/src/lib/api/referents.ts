@@ -9,7 +9,7 @@ import type { ReferentDto } from "@/lib/api/subjects";
 
 export interface FindReferentsRequestDto {
   pageable: PageRequestDto;
-  query: string;
+  query?: string;
 }
 
 export interface CreateReferentRequestDto {
@@ -24,7 +24,7 @@ export function createReferentsApi(client: HttpClient = httpClient) {
     find(request: FindReferentsRequestDto): Promise<PageResponseDto<ReferentDto>> {
       const query: HttpQueryParams = {
         ...createPageQuery(request.pageable),
-        query: request.query,
+        ...(request.query ? { query: request.query } : {}),
       };
 
       return client.get<PageResponseDto<ReferentDto>>("/referents/find", {

@@ -197,9 +197,11 @@ class OpinionsIntegrationTests {
                 .perform(
                     get("/api/referents/find")
                         .with(csrf())
-                        .queryParam("query", "Berlin 4")
+                        .queryParam("query", request.name)
                         .queryParam("page", "0")
                         .queryParam("size", "10")
+                        .queryParam("sort[0].property", "name")
+                        .queryParam("sort[0].direction", "ASC")
                         .header("Authorization", "Bearer $accessToken"),
                 ).andExpect(status().isOk)
                 .andReturn()

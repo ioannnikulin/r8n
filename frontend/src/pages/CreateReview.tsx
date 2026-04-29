@@ -70,8 +70,8 @@ const SupplierSearch = ({
 
   const trimmedQuery = query.trim();
   const findReferents = useFindReferents(
-    { query: trimmedQuery, pageable: { page: 0, size: 10, sort: [{ property: "name", direction: "ASC" }] } },
-    { enabled: open && trimmedQuery.length > 0, staleTime: 0 },
+    { query: trimmedQuery || undefined, pageable: { page: 0, size: 10 } },
+    { enabled: open },
   );
   const createReferent = useCreateReferentMutation();
 
@@ -132,9 +132,7 @@ const SupplierSearch = ({
             className="absolute z-50 mt-1.5 w-full rounded-xl border border-border bg-card shadow-lg overflow-hidden"
           >
             <div className="max-h-48 overflow-y-auto">
-              {trimmedQuery.length === 0 ? (
-                <p className="px-4 py-3 text-xs text-muted-foreground">Start typing to search</p>
-              ) : findReferents.isLoading ? (
+              {findReferents.isLoading ? (
                 <p className="px-4 py-3 text-xs text-muted-foreground">Searching…</p>
               ) : (findReferents.data?.items?.length ?? 0) === 0 ? (
                 <p className="px-4 py-3 text-xs text-muted-foreground">No results found</p>

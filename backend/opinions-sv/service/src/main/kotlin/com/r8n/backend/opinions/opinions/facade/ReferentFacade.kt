@@ -15,7 +15,7 @@ class ReferentFacade(
     private val referentMapper: ReferentMapper,
 ) {
     fun findReferents(
-        query: String,
+        query: String?,
         pageable: PageRequestDto,
     ): PageResponseDto<ReferentDto> =
         referentService

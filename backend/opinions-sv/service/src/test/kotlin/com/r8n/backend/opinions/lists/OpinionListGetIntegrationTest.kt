@@ -4,9 +4,11 @@ import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.TestObjectMapperConfiguration
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
+import com.r8n.backend.opinions.api.opinions.dto.OpinionDto
 import com.r8n.backend.security.ServiceTokenService
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -21,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -41,6 +44,7 @@ import java.util.UUID
 class OpinionListGetIntegrationTest {
     private companion object {
         val ANNA_ID: UUID = UUID.fromString("20202020-2020-2020-2020-202020202020")
+        val SUBJECT_1_ID: UUID = UUID.fromString("10000000-0000-0000-0000-000000000001")
 
         val ANNA_L11_ID: UUID = UUID.fromString("80000000-0000-0000-0000-000000000111")
 
@@ -159,5 +163,79 @@ class OpinionListGetIntegrationTest {
         val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
         assertThat(page.items.map { it.listName }).contains("l11")
         assertThat(page.items).allSatisfy { it.listName.contains("l11") }
+    }
+
+    @Test
+    fun `weighted rating uses stored weights for owners own opinions`() {
+        val createdList =
+            mockMvc
+                .perform(
+                    post("/api/opinion-lists")
+                        .header("Authorization", annaToken)
+                        .param("name", "weighted-own-opinions")
+                        .param("privacy", "PRIVATE"),
+                ).andExpect(status().isOk)
+                .andReturn()
+                .response.contentAsString
+                .let { objectMapper.readValue<OpinionListDto>(it) }
+
+        val firstOpinion =
+            mockMvc
+                .perform(
+                    post("/api/opinions")
+                        .header("Authorization", annaToken)
+                        .param("subjectId", SUBJECT_1_ID.toString())
+                        .param("subjective", "first weighted opinion")
+                        .param("objective", "objective one")
+                        .param("mark", "6.0"),
+                ).andExpect(status().isOk)
+                .andReturn()
+                .response.contentAsString
+                .let { objectMapper.readValue<OpinionDto>(it) }
+
+        val secondOpinion =
+            mockMvc
+                .perform(
+                    post("/api/opinions")
+                        .header("Authorization", annaToken)
+                        .param("subjectId", SUBJECT_1_ID.toString())
+                        .param("subjective", "second weighted opinion")
+                        .param("objective", "objective two")
+                        .param("mark", "4.0"),
+                ).andExpect(status().isOk)
+                .andReturn()
+                .response.contentAsString
+                .let { objectMapper.readValue<OpinionDto>(it) }
+
+        mockMvc
+            .perform(
+                post("/api/opinion-lists/${createdList.id}/link")
+                    .header("Authorization", annaToken)
+                    .param("opinionId", firstOpinion.id.toString())
+                    .param("weight", "0.7"),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/api/opinion-lists/${createdList.id}/link")
+                    .header("Authorization", annaToken)
+                    .param("opinionId", secondOpinion.id.toString())
+                    .param("weight", "1.0"),
+            ).andExpect(status().isOk)
+
+        val fetchedList =
+            mockMvc
+                .perform(
+                    get("/api/opinion-lists/${createdList.id}")
+                        .header("Authorization", annaToken),
+                ).andExpect(status().isOk)
+                .andReturn()
+                .response.contentAsString
+                .let { objectMapper.readValue<OpinionListDto>(it) }
+
+        val summary = fetchedList.opinionSummaries.single()
+        assertThat(summary.opinions).hasSize(2)
+        assertThat(summary.opinions.map { it.weight }).containsExactlyInAnyOrder(0.7, 1.0)
+        assertThat(summary.componentMark).isCloseTo(4.823529411764706, within(1e-12))
     }
 }

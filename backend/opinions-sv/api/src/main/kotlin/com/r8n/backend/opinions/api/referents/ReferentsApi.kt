@@ -5,7 +5,6 @@ import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.opinions.dto.ReferentDto
 import com.r8n.backend.opinions.api.referents.dto.CreateReferentRequestDto
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotBlank
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -20,9 +19,8 @@ interface ReferentsApi {
 
     @GetMapping(FIND_PATH)
     fun findReferents(
-        @RequestParam(required = true)
-        @NotBlank
-        query: String,
+        @RequestParam(required = false)
+        query: String?,
         @Valid
         pageable: PageRequestDto,
     ): PageResponseDto<ReferentDto>

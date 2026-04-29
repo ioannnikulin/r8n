@@ -12,5 +12,7 @@ interface ReferentRepository : JpaRepository<ReferentPersistence, UUID> {
         pageable: Pageable,
     ): Page<ReferentPersistence>
 
+    fun findAllByOrderByNameAsc(pageable: Pageable): Page<ReferentPersistence>
+
     fun findAllByReferentGroupOrderByIdAsc(referentGroup: UUID): List<ReferentPersistence>
 }

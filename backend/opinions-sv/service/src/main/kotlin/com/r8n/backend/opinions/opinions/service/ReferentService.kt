@@ -17,17 +17,15 @@ class ReferentService(
 ) {
     @Transactional(readOnly = true)
     fun findReferents(
-        query: String,
+        query: String?,
         pageable: Pageable,
     ): Page<SubjectReferent> {
-        val trimmedQuery = query.trim()
-        if (trimmedQuery.isEmpty()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "query must not be blank")
-        }
-
-        return referentRepository
-            .findByNameContainingIgnoreCaseOrderByNameAsc(trimmedQuery, pageable)
-            .map { it.toModel() }
+        val trimmedQuery = query?.trim()?.takeIf { it.isNotEmpty() }
+        return if (trimmedQuery != null) {
+            referentRepository.findByNameContainingIgnoreCaseOrderByNameAsc(trimmedQuery, pageable)
+        } else {
+            referentRepository.findAllByOrderByNameAsc(pageable)
+        }.map { it.toModel() }
     }
 
     @Transactional
