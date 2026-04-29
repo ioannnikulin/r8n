@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Filter, MapPin, Calendar, BookOpen, User, X, Crosshair, Navigation, ChevronLeft, ChevronRight, List } from "lucide-react";
+import { Search, Filter, MapPin, Calendar, BookOpen, User, X, Crosshair, Navigation, ChevronLeft, ChevronRight, List, Plus, Trash2 } from "lucide-react";
 import OpinionListCard from "@/components/OpinionListCard";
 import ReviewerAvatar from "@/components/ReviewerAvatar";
 import { QueryState } from "@/components/server-state/QueryState";
@@ -15,8 +15,9 @@ const Discover = () => {
   // Pagination & Sorting state
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [sortProperty, setSortProperty] = useState<string>("listName");
-  const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("ASC");
+  const [sorts, setSorts] = useState<{ property: string, direction: "ASC" | "DESC" }[]>([
+    { property: "listName", direction: "ASC" }
+  ]);
 
   // Advanced filters state
   const [authorName, setAuthorName] = useState("");
@@ -33,7 +34,7 @@ const Discover = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [query, authorName, subject, location, youngerThan, latitude, longitude, radius, useGeo, pageSize, sortProperty, sortDirection]);
+  }, [query, authorName, subject, location, youngerThan, latitude, longitude, radius, useGeo, pageSize, sorts]);
 
   const hasGeoFilters = useGeo && latitude !== "" && longitude !== "";
   const hasAdvancedFilters = authorName || subject || location || youngerThan || hasGeoFilters;
@@ -56,7 +57,7 @@ const Discover = () => {
     pageable: { 
       page, 
       size: pageSize,
-      sort: [{ property: sortProperty, direction: sortDirection }]
+      sort: sorts
     },
   });
 
@@ -73,8 +74,7 @@ const Discover = () => {
     setLongitude("");
     setUseGeo(false);
     setPageSize(20);
-    setSortProperty("listName");
-    setSortDirection("ASC");
+    setSorts([{ property: "listName", direction: "ASC" }]);
     setPage(0);
   };
 
@@ -236,27 +236,57 @@ const Discover = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <List className="h-3 w-3" /> Sort By
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={sortProperty}
-                        onChange={(e) => setSortProperty(e.target.value)}
-                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none"
-                      >
-                        <option value="listName">List Name</option>
-                        <option value="ownerName">Owner Name</option>
-                        <option value="opinionsCount">Opinions Count</option>
-                      </select>
-                      <select
-                        value={sortDirection}
-                        onChange={(e) => setSortDirection(e.target.value as "ASC" | "DESC")}
-                        className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none text-center"
-                      >
-                        <option value="ASC">ASC</option>
-                        <option value="DESC">DESC</option>
-                      </select>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <List className="h-3 w-3" /> Sorting Factors
+                      </label>
+                      {sorts.length < 3 && (
+                        <button
+                          onClick={() => setSorts([...sorts, { property: "ownerName", direction: "ASC" }])}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                        >
+                          <Plus className="h-2.5 w-2.5" /> Add factor
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {sorts.map((sort, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <select
+                            value={sort.property}
+                            onChange={(e) => {
+                              const newSorts = [...sorts];
+                              newSorts[index].property = e.target.value;
+                              setSorts(newSorts);
+                            }}
+                            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none"
+                          >
+                            <option value="listName">List Name</option>
+                            <option value="ownerName">Owner Name</option>
+                            <option value="opinionsCount">Opinions Count</option>
+                          </select>
+                          <select
+                            value={sort.direction}
+                            onChange={(e) => {
+                              const newSorts = [...sorts];
+                              newSorts[index].direction = e.target.value as "ASC" | "DESC";
+                              setSorts(newSorts);
+                            }}
+                            className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none text-center"
+                          >
+                            <option value="ASC">ASC</option>
+                            <option value="DESC">DESC</option>
+                          </select>
+                          {sorts.length > 1 && (
+                            <button
+                              onClick={() => setSorts(sorts.filter((_, i) => i !== index))}
+                              className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
