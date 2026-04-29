@@ -9,4 +9,5 @@ data class OpinionListInfo(
     val privacy: OpinionListPrivacyEnum,
     val opinionsCount: Long,
     val grantedAccessCount: Int,
+    val ownerName: String? = null,
 )

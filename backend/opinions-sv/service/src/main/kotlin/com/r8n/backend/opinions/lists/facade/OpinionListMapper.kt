@@ -33,12 +33,15 @@ class OpinionListMapper(
             )
         }
 
-    fun toSummaryDto(info: OpinionListInfo): OpinionListSummaryDto =
+    fun toSummaryDto(
+        info: OpinionListInfo,
+        ownerName: String? = null,
+    ): OpinionListSummaryDto =
         OpinionListSummaryDto(
             listId = info.id,
             listName = info.name,
             owner = info.owner,
-            ownerName = usersClient.getUserName(info.owner),
+            ownerName = ownerName ?: usersClient.getUserName(info.owner),
             opinionsCount = info.opinionsCount,
             grantedAccessCount = info.grantedAccessCount,
             privacy = info.privacy.toDto(),
