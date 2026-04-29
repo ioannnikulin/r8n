@@ -190,9 +190,9 @@ class OpinionListSearchIntegrationTest {
 
     @Test
     fun `search by authorNameSubstring works via usersApi`() {
-        val BERNARD_ID = UUID.fromString("10101010-1010-1010-1010-101010101010")
+        val bernardId = UUID.fromString("10101010-1010-1010-1010-101010101010")
         val mockUserDto = org.mockito.kotlin.mock<UserDto>()
-        whenever(mockUserDto.id).thenReturn(BERNARD_ID)
+        whenever(mockUserDto.id).thenReturn(bernardId)
         whenever(usersInternalApi.findUsersByNameSubstring("Bernard")).thenReturn(listOf(mockUserDto))
 
         // Bernard owns l21, l22, l23 (from seed data)
@@ -209,7 +209,7 @@ class OpinionListSearchIntegrationTest {
 
         val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
         assertThat(page.items.map { it.listName }).contains("l21", "l22", "l23")
-        assertThat(page.items).allSatisfy { assertThat(it.owner).isEqualTo(BERNARD_ID) }
+        assertThat(page.items).allSatisfy { assertThat(it.owner).isEqualTo(bernardId) }
     }
 
     @Test
