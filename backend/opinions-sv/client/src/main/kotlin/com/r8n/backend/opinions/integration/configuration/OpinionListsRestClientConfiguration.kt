@@ -1,9 +1,11 @@
 package com.r8n.backend.opinions.integration.configuration
 
 import com.r8n.backend.opinions.api.lists.OpinionListsApi
+import com.r8n.backend.opinions.api.lists.OpinionListsSearchApi
 import com.r8n.backend.opinions.integration.api.OpinionListsInternalApi
 import com.r8n.backend.opinions.integration.client.OpinionListInternalRestClient
 import com.r8n.backend.opinions.integration.client.OpinionListRestClient
+import com.r8n.backend.opinions.integration.client.OpinionListSearchRestClient
 import com.r8n.backend.security.SecurityContextTokenInterceptor
 import com.r8n.backend.security.ServiceTokenService
 import org.springframework.beans.factory.annotation.Qualifier
@@ -35,4 +37,9 @@ class OpinionListsRestClientConfiguration {
     fun opinionListInternalRestClient(
         @Qualifier("opinionListsRestBaseClient") opinionListsRestBaseClient: RestClient,
     ): OpinionListsInternalApi = OpinionListInternalRestClient(opinionListsRestBaseClient)
+
+    @Bean
+    fun opinionListSearchRestClient(
+        @Qualifier("opinionListsRestBaseClient") opinionListsRestBaseClient: RestClient,
+    ): OpinionListsSearchApi = OpinionListSearchRestClient(opinionListsRestBaseClient)
 }

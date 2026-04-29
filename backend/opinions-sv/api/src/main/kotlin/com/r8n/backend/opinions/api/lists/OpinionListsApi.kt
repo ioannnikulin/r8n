@@ -1,11 +1,8 @@
 package com.r8n.backend.opinions.api.lists
 
-import com.r8n.backend.core.api.PageRequestDto
-import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListPrivacyEnumDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
-import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
@@ -29,10 +26,8 @@ interface OpinionListsApi {
         const val SET_PRIVACY_PATH = "$ROOT_PATH/{listId}/set-privacy"
         const val LINK_PATH = "$ROOT_PATH/{listId}/link"
         const val UNLINK_PATH = "$ROOT_PATH/{listId}/unlink"
-        const val SEARCH_PATH = "$ROOT_PATH/search"
         const val SYNC_PATH = "$ROOT_PATH/{existingListId}/sync"
         const val UNSYNC_PATH = "$ROOT_PATH/{existingListId}/unsync"
-        const val MINE_PATH = "$ROOT_PATH/mine"
     }
 
     @GetMapping(SUMMARY_PATH)
@@ -94,18 +89,6 @@ interface OpinionListsApi {
         opinionId: UUID,
     ): OpinionListDto
 
-    @GetMapping(SEARCH_PATH)
-    fun search(
-        @RequestParam(required = false)
-        nameSubstring: String?,
-        @RequestParam(required = false)
-        authorId: UUID?,
-        @RequestParam(required = false)
-        authorNameSubstring: String?,
-        @Valid
-        pageable: PageRequestDto,
-    ): PageResponseDto<OpinionListSummaryDto>
-
     @PostMapping(SYNC_PATH)
     fun syncWithOpinionList(
         @PathVariable
@@ -125,10 +108,4 @@ interface OpinionListsApi {
         @RequestParam(required = true)
         removedListId: UUID,
     ): OpinionListDto
-
-    @GetMapping(MINE_PATH)
-    fun getMine(
-        @Valid
-        pageable: PageRequestDto,
-    ): PageResponseDto<OpinionListSummaryDto>
 }

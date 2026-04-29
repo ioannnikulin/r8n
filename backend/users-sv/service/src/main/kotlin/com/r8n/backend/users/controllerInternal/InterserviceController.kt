@@ -45,6 +45,10 @@ class InterserviceController(
     override fun getUser(id: UUID): UserDto = userFacade.getUser(id)
 
     @PreAuthorize(Authority.IS_USER_OR_SERVICE)
+    override fun findUsersByNameSubstring(nameSubstring: String): List<UserDto> =
+        userFacade.findUsersByNameSubstring(nameSubstring)
+
+    @PreAuthorize(Authority.IS_USER_OR_SERVICE)
     override fun getSessionsForUser(
         id: UUID,
         page: PageRequestDto?,

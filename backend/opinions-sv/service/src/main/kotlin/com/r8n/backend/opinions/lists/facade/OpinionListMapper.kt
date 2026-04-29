@@ -1,6 +1,8 @@
 package com.r8n.backend.opinions.lists.facade
 
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameAndOwnerDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListPrivacyEnumDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionSummaryDto
@@ -40,6 +42,20 @@ class OpinionListMapper(
             opinionsCount = info.opinionsCount,
             grantedAccessCount = info.grantedAccessCount,
             privacy = info.privacy.toDto(),
+        )
+
+    fun toNameAndOwnerDto(info: OpinionListInfo): OpinionListNameAndOwnerDto =
+        OpinionListNameAndOwnerDto(
+            listId = info.id,
+            listName = info.name,
+            owner = info.owner,
+            ownerName = usersClient.getUserName(info.owner),
+        )
+
+    fun toNameDto(info: OpinionListInfo): OpinionListNameDto =
+        OpinionListNameDto(
+            id = info.id,
+            name = info.name,
         )
 
     fun toDto(opinionSummary: OpinionSummary) =

@@ -9,6 +9,7 @@ import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.IS_AI_MO
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.IS_ANY_MODERATOR_PATH
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.IS_HUMAN_MODERATOR_PATH
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.NAME_PATH
+import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.SEARCH_PATH
 import com.r8n.backend.users.integration.api.UsersInternalApi.Companion.SESSIONS_PATH
 import com.r8n.backend.users.integration.api.dto.UserDto
 import com.r8n.backend.users.integration.api.dto.UserSessionDto
@@ -26,6 +27,17 @@ class UsersRestClient(
             .uri(NAME_PATH, id)
             .retrieve()
             .body(String::class.java)!!
+
+    override fun findUsersByNameSubstring(nameSubstring: String): List<UserDto> =
+        restClient
+            .get()
+            .uri { uriBuilder ->
+                uriBuilder
+                    .path(SEARCH_PATH)
+                    .queryParam("nameSubstring", nameSubstring)
+                    .build()
+            }.retrieve()
+            .body(object : ParameterizedTypeReference<List<UserDto>>() {})!!
 
     override fun getUser(id: UUID): UserDto =
         restClient

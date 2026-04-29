@@ -1,0 +1,21 @@
+package com.r8n.backend.opinions.lists.domain
+
+import java.time.Instant
+import java.util.UUID
+
+data class OpinionListSearchFilters(
+    val nameSubstring: String? = null,
+    val authorId: UUID? = null,
+    val authorNameSubstring: String? = null,
+    val someOpinionsYoungerThan: Instant? = null,
+    val containsSubjectSubstring: String? = null,
+    val locationFilter: LocationFilter? = null,
+    val findThisTextInAnyOfTheAbove: String? = null,
+)
+
+data class LocationFilter(
+    val containsLocationSubstring: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val radiusInMeters: Double? = null,
+)

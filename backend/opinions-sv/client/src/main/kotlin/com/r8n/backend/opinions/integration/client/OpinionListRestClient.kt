@@ -1,14 +1,10 @@
 package com.r8n.backend.opinions.integration.client
 
-import com.r8n.backend.core.api.PageRequestDto
-import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.lists.OpinionListsApi
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.CREATE_PATH
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.GET_PATH
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.LINK_PATH
-import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.MINE_PATH
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.RENAME_PATH
-import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.SEARCH_PATH
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.SET_PRIVACY_PATH
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.SUMMARY_PATH
 import com.r8n.backend.opinions.api.lists.OpinionListsApi.Companion.SYNC_PATH
@@ -110,30 +106,6 @@ class OpinionListRestClient(
             }.retrieve()
             .body<OpinionListDto>()!!
 
-    override fun search(
-        nameSubstring: String?,
-        authorId: UUID?,
-        authorNameSubstring: String?,
-        pageable: PageRequestDto,
-    ): PageResponseDto<OpinionListSummaryDto> =
-        restClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path(SEARCH_PATH)
-                    .queryParamIfPresent("nameSubstring", Optional.ofNullable(nameSubstring))
-                    .queryParamIfPresent("authorId", Optional.ofNullable(authorId))
-                    .queryParamIfPresent("authorNameSubstring", Optional.ofNullable(authorNameSubstring))
-                    .queryParam("page", pageable.page)
-                    .queryParam("size", pageable.size)
-                    .apply {
-                        pageable.sort.forEach {
-                            queryParam("sort", "${it.property},${it.direction}")
-                        }
-                    }.build()
-            }.retrieve()
-            .body<PageResponseDto<OpinionListSummaryDto>>()!!
-
     override fun syncWithOpinionList(
         existingListId: UUID,
         addedListId: UUID,
@@ -161,20 +133,4 @@ class OpinionListRestClient(
                 uriBuilder.path(UNSYNC_PATH).queryParam("removedListId", removedListId).build(existingListId)
             }.retrieve()
             .body<OpinionListDto>()!!
-
-    override fun getMine(pageable: PageRequestDto): PageResponseDto<OpinionListSummaryDto> =
-        restClient
-            .get()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path(MINE_PATH)
-                    .queryParam("page", pageable.page)
-                    .queryParam("size", pageable.size)
-                    .apply {
-                        pageable.sort.forEach {
-                            queryParam("sort", "${it.property},${it.direction}")
-                        }
-                    }.build()
-            }.retrieve()
-            .body<PageResponseDto<OpinionListSummaryDto>>()!!
 }
