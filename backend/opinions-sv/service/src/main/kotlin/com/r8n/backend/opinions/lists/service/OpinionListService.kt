@@ -65,6 +65,13 @@ class OpinionListService(
         if (!accessService.ownsOpinionList(userId, existingListId)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You don't own the destination list")
         }
+        val addedList =
+            opinionListRepository.findById(addedListId).orElseThrow {
+                ResponseStatusException(HttpStatus.NOT_FOUND)
+            }
+        if (addedList.privacy == OpinionListPrivacyEnum.PRIVATE) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
         if (!accessService.canAccessOpinionList(userId, addedListId, OpinionListPermissionEnum.VIEW)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to the source list")
         }
