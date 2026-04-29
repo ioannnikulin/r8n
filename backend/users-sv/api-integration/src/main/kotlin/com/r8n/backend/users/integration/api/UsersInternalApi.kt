@@ -7,6 +7,7 @@ import com.r8n.backend.users.integration.api.dto.UserSessionDto
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
 import java.util.UUID
 
 interface UsersInternalApi {
@@ -18,7 +19,13 @@ interface UsersInternalApi {
         const val IS_HUMAN_MODERATOR_PATH = "$ID_PATH/is-human-moderator"
         const val IS_AI_MODERATOR_PATH = "$ID_PATH/is-ai-moderator"
         const val IS_ADMIN_PATH = "$ID_PATH/is-admin"
+        const val SEARCH_PATH = "/api/internal/users/search"
     }
+
+    @GetMapping(SEARCH_PATH)
+    fun findUsersByNameSubstring(
+        @RequestParam nameSubstring: String,
+    ): List<UserDto>
 
     @GetMapping(NAME_PATH)
     fun getUserName(

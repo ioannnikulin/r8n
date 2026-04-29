@@ -2,7 +2,9 @@ package com.r8n.backend.opinions.lists.service
 
 import com.r8n.backend.opinions.access.database.AccessRequestRepository
 import com.r8n.backend.opinions.access.domain.OpinionListPermissionEnum
+import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import com.r8n.backend.opinions.access.service.AccessService
+import com.r8n.backend.opinions.api.lists.dto.OpinionListSearchFiltersDto
 import com.r8n.backend.opinions.lists.database.OpinionListRepository
 import com.r8n.backend.opinions.lists.database.OpinionListSyncRepository
 import com.r8n.backend.opinions.lists.database.OpinionsToOpinionListsRepository
@@ -15,7 +17,9 @@ import com.r8n.backend.opinions.lists.persistence.OpinionListSyncPersistence
 import com.r8n.backend.opinions.lists.persistence.OpinionsToOpinionListsPersistence
 import com.r8n.backend.opinions.opinions.domain.Opinion
 import com.r8n.backend.opinions.opinions.service.OpinionService
+import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -37,6 +41,7 @@ class OpinionListService(
     private val accessService: AccessService,
     private val syncRepository: OpinionListSyncRepository,
     private val accessRequestRepository: AccessRequestRepository,
+    private val usersApi: UsersInternalApi,
 ) {
     @Transactional
     fun createList(
@@ -346,17 +351,73 @@ class OpinionListService(
             .findByOwner(ownerId, pageable)
             .map { getList(it.id!!, ownerId) }
 
-    @Transactional(readOnly = true)
-    fun searchOpinionListsByName(
-        nameSubstring: String,
+    fun getApprovedListsWithNamesAndOwners(
         requesterId: UUID,
         pageable: Pageable,
     ): Page<OpinionListInfo> {
-        val trimmedName = nameSubstring.trim().takeIf { it.isNotEmpty() } ?: return Page.empty(pageable)
+        val approvedRequests =
+            accessRequestRepository.findAllByFilters(
+                listId = null,
+                requesterId = requesterId,
+                ownerId = null,
+                status = RequestStatusEnum.ACCEPTED,
+                pageable = pageable,
+            )
 
+        val listIds = approvedRequests.map { it.list }.content
+        val lists = opinionListRepository.findAllById(listIds).associateBy { it.id }
+
+        val infoList = approvedRequests.content.mapNotNull { request ->
+            val list = lists[request.list]
+            if (list != null && list.privacy == OpinionListPrivacyEnum.SEARCHABLE) {
+                OpinionListInfo(
+                    id = list.id!!,
+                    name = list.name,
+                    owner = list.owner,
+                    privacy = list.privacy,
+                    opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
+                    grantedAccessCount = accessService.countAcceptedForList(list.id!!),
+                )
+            } else {
+                null
+            }
+        }
+        return PageImpl(infoList, pageable, approvedRequests.totalElements)
+    }
+
+    @Transactional(readOnly = true)
+    fun search(
+        requesterId: UUID,
+        filters: OpinionListSearchFiltersDto,
+        pageable: Pageable,
+    ): Page<OpinionListInfo> {
+        val hasFilters =
+            !filters.nameSubstring.isNullOrBlank() ||
+                filters.authorId != null ||
+                !filters.authorNameSubstring.isNullOrBlank() ||
+                !filters.containsLocationSubstring.isNullOrBlank() ||
+                filters.someOpinionsYoungerThan != null ||
+                !filters.containsSubjectSubstring.isNullOrBlank() ||
+                !filters.findThisTextInAnyOfTheAbove.isNullOrBlank()
+
+        if (!hasFilters) {
+            return Page.empty(pageable)
+        }
+
+        val authorNameSubstring = filters.authorNameSubstring
+        val authorIdsFromName =
+            if (!authorNameSubstring.isNullOrBlank()) {
+                usersApi.findUsersByNameSubstring(authorNameSubstring).map { it.id }.toSet().ifEmpty { null }
+            } else {
+                null
+            }
+
+        // TODO: implement remaining filter parameters in repository query if needed
         return opinionListRepository
-            .findByNameContainingIgnoreCaseAndPrivacyFilter(
-                nameSubstring = trimmedName,
+            .search(
+                nameSubstring = filters.nameSubstring?.trim()?.takeIf { it.isNotBlank() },
+                authorId = filters.authorId,
+                authorIds = authorIdsFromName,
                 requesterId = requesterId,
                 searchablePrivacy = OpinionListPrivacyEnum.SEARCHABLE,
                 pageable = pageable,

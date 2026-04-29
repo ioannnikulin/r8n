@@ -1,8 +1,13 @@
 package com.r8n.backend.opinions.lists.controller
 
 import com.r8n.backend.core.api.PageRequestDto
+import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.lists.OpinionListsApi
+import com.r8n.backend.opinions.api.lists.OpinionListsSearchApi
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameAndOwnerDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListPrivacyEnumDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListSearchFiltersDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import com.r8n.backend.opinions.lists.facade.OpinionListFacade
 import com.r8n.backend.opinions.stub.OpinionListTestDataFactory
@@ -10,12 +15,13 @@ import com.r8n.backend.security.Authority.IS_USER
 import com.r8n.backend.security.CurrentUserIdentifier.getCurrentUserId
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 import java.util.UUID
 
 @RestController
 class StubOpinionListController(
     private val opinionListFacade: OpinionListFacade,
-) : OpinionListsApi {
+) : OpinionListsApi, OpinionListsSearchApi {
     @PreAuthorize(IS_USER)
     override fun getListSummary(listId: UUID): OpinionListSummaryDto =
         opinionListFacade.getListSummary(listId, getCurrentUserId())
@@ -58,14 +64,12 @@ class StubOpinionListController(
     ) = opinionListFacade.unlinkOpinion(getCurrentUserId(), listId, opinionId)
 
     @PreAuthorize(IS_USER)
-    override fun search(
-        nameSubstring: String?,
-        authorId: UUID?,
-        authorNameSubstring: String?,
+    override fun discover(
+        filters: OpinionListSearchFiltersDto,
         pageable: PageRequestDto,
-    ) = opinionListFacade.searchOpinionListsByName(
-        nameSubstring = nameSubstring ?: "",
+    ) = opinionListFacade.search(
         requesterId = getCurrentUserId(),
+        filters = filters,
         pageable = pageable,
     )
 
@@ -84,4 +88,12 @@ class StubOpinionListController(
 
     @PreAuthorize(IS_USER)
     override fun getMine(pageable: PageRequestDto) = opinionListFacade.getMine(getCurrentUserId(), pageable)
+
+    @PreAuthorize(IS_USER)
+    override fun getApprovedListsWithNamesAndOwners(pageable: PageRequestDto): PageResponseDto<OpinionListNameAndOwnerDto> =
+        opinionListFacade.getApprovedListsWithNamesAndOwners(getCurrentUserId(), pageable)
+
+    @PreAuthorize(IS_USER)
+    override fun getMineNamesOnly(pageable: PageRequestDto): PageResponseDto<OpinionListNameDto> =
+        opinionListFacade.getMineNamesOnly(getCurrentUserId(), pageable)
 }

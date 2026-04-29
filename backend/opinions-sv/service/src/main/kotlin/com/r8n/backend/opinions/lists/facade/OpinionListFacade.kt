@@ -5,7 +5,10 @@ import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.core.utils.toPageable
 import com.r8n.backend.core.utils.toResponse
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameAndOwnerDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListPrivacyEnumDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListSearchFiltersDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import com.r8n.backend.opinions.lists.domain.OpinionListPrivacyEnum
 import com.r8n.backend.opinions.lists.service.OpinionListService
@@ -59,17 +62,32 @@ class OpinionListFacade(
             .map { opinionListMapper.toDto(it) }
             .toResponse()
 
-    fun searchOpinionListsByName(
-        nameSubstring: String,
+    fun search(
         requesterId: UUID,
+        filters: OpinionListSearchFiltersDto,
         pageable: PageRequestDto,
     ): PageResponseDto<OpinionListSummaryDto> =
         opinionListService
-            .searchOpinionListsByName(
-                nameSubstring = nameSubstring,
+            .search(
                 requesterId = requesterId,
+                filters = filters,
                 pageable = pageable.toPageable(),
             ).map { opinionListMapper.toSummaryDto(it) }
+            .toResponse()
+
+    fun getApprovedListsWithNamesAndOwners(requesterId: UUID, pageable: PageRequestDto): PageResponseDto<OpinionListNameAndOwnerDto> =
+        opinionListService
+            .getApprovedListsWithNamesAndOwners(requesterId, pageable.toPageable())
+            .map { info -> opinionListMapper.toNameAndOwnerDto(info) }
+            .toResponse()
+
+    fun getMineNamesOnly(
+        ownerId: UUID,
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionListNameDto> =
+        opinionListService
+            .getMine(ownerId, pageable.toPageable())
+            .map { info -> opinionListMapper.toNameDto(info) }
             .toResponse()
 
     fun syncWithOpinionList(

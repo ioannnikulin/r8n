@@ -23,4 +23,6 @@ interface PIIRepository : JpaRepository<PIIPersistence, UUID> {
         about: String?,
         location: String?,
     ): Int
+
+    fun findAllByNameContainingIgnoreCase(nameSubstring: String): List<PIIPersistence>
 }

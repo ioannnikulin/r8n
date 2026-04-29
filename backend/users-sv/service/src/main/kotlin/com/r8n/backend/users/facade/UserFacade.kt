@@ -100,6 +100,18 @@ class UserFacade(
             )
         }
 
+    fun findUsersByNameSubstring(nameSubstring: String): List<UserDto> =
+        userService.findUsersByNameSubstring(nameSubstring).map { user ->
+            UserDto(
+                id = user.id,
+                name = user.name,
+                email = user.email,
+                status = user.status.toDto(),
+                statusTimestamp = user.statusTimestamp,
+                consents = user.consents.map { it.toDto() },
+            )
+        }
+
     private fun UserProfile.toDto() =
         UserProfileDto(
             id,
