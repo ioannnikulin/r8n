@@ -14,7 +14,6 @@ import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
 import java.util.Optional
-import java.util.UUID
 
 class OpinionListSearchRestClient(
     private val restClient: RestClient,

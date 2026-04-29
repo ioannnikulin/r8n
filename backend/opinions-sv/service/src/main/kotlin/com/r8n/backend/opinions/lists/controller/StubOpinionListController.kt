@@ -29,7 +29,7 @@ class StubOpinionListController(
     @PreAuthorize(IS_USER)
     override fun getList(
         listId: UUID,
-        publishedAfter: java.time.Instant?,
+        publishedAfter: Instant?,
     ) = opinionListFacade.getList(listId, getCurrentUserId(), publishedAfter)
 
     @PreAuthorize(IS_USER)

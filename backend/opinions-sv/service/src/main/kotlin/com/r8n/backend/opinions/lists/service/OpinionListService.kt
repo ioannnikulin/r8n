@@ -15,6 +15,9 @@ import com.r8n.backend.opinions.lists.domain.OpinionSummary
 import com.r8n.backend.opinions.lists.persistence.OpinionListPersistence
 import com.r8n.backend.opinions.lists.persistence.OpinionListSyncPersistence
 import com.r8n.backend.opinions.lists.persistence.OpinionsToOpinionListsPersistence
+import com.r8n.backend.opinions.opinions.database.OpinionRepository
+import com.r8n.backend.opinions.opinions.database.OpinionSubjectRepository
+import com.r8n.backend.opinions.opinions.database.ReferentRepository
 import com.r8n.backend.opinions.opinions.domain.Opinion
 import com.r8n.backend.opinions.opinions.service.OpinionService
 import com.r8n.backend.users.integration.api.UsersInternalApi
@@ -42,6 +45,9 @@ class OpinionListService(
     private val syncRepository: OpinionListSyncRepository,
     private val accessRequestRepository: AccessRequestRepository,
     private val usersApi: UsersInternalApi,
+    private val referentRepository: ReferentRepository,
+    private val subjectRepository: OpinionSubjectRepository,
+    private val opinionRepository: OpinionRepository,
 ) {
     @Transactional
     fun createList(
@@ -412,16 +418,109 @@ class OpinionListService(
                 null
             }
 
-        // TODO: implement remaining filter parameters in repository query if needed
+        // Base results from primary filters (name and author)
+        val baseListIds =
+            opinionListRepository
+                .searchIds(
+                    nameSubstring = filters.nameSubstring?.trim()?.takeIf { it.isNotBlank() },
+                    authorId = filters.authorId,
+                    authorIds = authorIdsFromName,
+                    requesterId = requesterId,
+                    searchablePrivacy = OpinionListPrivacyEnum.SEARCHABLE,
+                ).toMutableSet()
+
+        if (baseListIds.isEmpty()) {
+            return Page.empty(pageable)
+        }
+
+        var resultIds: MutableSet<UUID> = baseListIds
+
+        // Apply additional filters as intersections
+        filters.containsLocationSubstring?.trim()?.takeIf { it.isNotBlank() }?.let { loc ->
+            val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(loc)
+            val listIds = if (referentIds.isNotEmpty()) {
+                val subjectIds = subjectRepository.findIdsByReferentIn(referentIds)
+                if (subjectIds.isNotEmpty()) {
+                    val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
+                    if (opinionIds.isNotEmpty()) {
+                        opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
+                    } else emptySet()
+                } else emptySet()
+            } else emptySet()
+            resultIds.retainAll(listIds)
+        }
+
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        filters.containsSubjectSubstring?.trim()?.takeIf { it.isNotBlank() }?.let { sub ->
+            val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(sub)
+            val listIds = if (subjectIds.isNotEmpty()) {
+                val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
+                if (opinionIds.isNotEmpty()) {
+                    opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
+                } else emptySet()
+            } else emptySet()
+            resultIds.retainAll(listIds)
+        }
+
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        filters.someOpinionsYoungerThan?.let { youngerThan ->
+            val opinionIds = opinionRepository.findIdsByTimestampAfter(youngerThan)
+            val listIds = if (opinionIds.isNotEmpty()) {
+                opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
+            } else emptySet()
+            resultIds.retainAll(listIds)
+        }
+
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        filters.findThisTextInAnyOfTheAbove?.trim()?.takeIf { it.isNotBlank() }?.let { text ->
+            // Match any: name, subject name, or location address
+            // This is "Any of the above" so it's a UNION of these matches, then INTERSECTED with current resultIds
+            val matchedListIds = mutableSetOf<UUID>()
+
+            // 1. Name match (we already have baseListIds which includes name matches if nameSubstring was set,
+            // but here we need to match 'text' against list names specifically)
+            matchedListIds.addAll(
+                opinionListRepository.searchIds(
+                    nameSubstring = text,
+                    authorId = null,
+                    authorIds = null,
+                    requesterId = requesterId,
+                    searchablePrivacy = OpinionListPrivacyEnum.SEARCHABLE,
+                ),
+            )
+
+            // 2. Subject name match
+            val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(text)
+            if (subjectIds.isNotEmpty()) {
+                val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
+                if (opinionIds.isNotEmpty()) {
+                    matchedListIds.addAll(opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds))
+                }
+            }
+
+            // 3. Location match
+            val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(text)
+            if (referentIds.isNotEmpty()) {
+                val locSubjectIds = subjectRepository.findIdsByReferentIn(referentIds)
+                if (locSubjectIds.isNotEmpty()) {
+                    val locOpinionIds = opinionRepository.findIdsBySubjectIn(locSubjectIds)
+                    if (locOpinionIds.isNotEmpty()) {
+                        matchedListIds.addAll(opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(locOpinionIds))
+                    }
+                }
+            }
+
+            resultIds.retainAll(matchedListIds)
+        }
+
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
         return opinionListRepository
-            .search(
-                nameSubstring = filters.nameSubstring?.trim()?.takeIf { it.isNotBlank() },
-                authorId = filters.authorId,
-                authorIds = authorIdsFromName,
-                requesterId = requesterId,
-                searchablePrivacy = OpinionListPrivacyEnum.SEARCHABLE,
-                pageable = pageable,
-            ).map { list ->
+            .findAllByIdIn(resultIds, pageable)
+            .map { list ->
                 OpinionListInfo(
                     id = list.id!!,
                     name = list.name,

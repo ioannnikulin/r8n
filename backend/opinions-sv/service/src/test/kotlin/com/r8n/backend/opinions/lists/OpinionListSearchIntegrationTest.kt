@@ -30,7 +30,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
-import java.time.Instant
 import java.util.UUID
 
 @ActiveProfiles("test")

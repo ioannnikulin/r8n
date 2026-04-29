@@ -221,7 +221,7 @@ class UserService(
         return normalizedValue
     }
 
-    fun findUsersByNameSubstring(nameSubstring: String): List<com.r8n.backend.users.domain.User> =
+    fun findUsersByNameSubstring(nameSubstring: String): List<User> =
         piiRepository.findAllByNameContainingIgnoreCase(nameSubstring).map { pii ->
             getUser(pii.userId)
         }
