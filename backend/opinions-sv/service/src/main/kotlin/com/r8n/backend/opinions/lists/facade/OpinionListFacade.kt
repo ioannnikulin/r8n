@@ -101,24 +101,6 @@ class OpinionListFacade(
             .map { info -> opinionListMapper.toNameDto(info) }
             .toResponse()
 
-    fun getApprovedListsWithNamesAndOwners(
-        requesterId: UUID,
-        pageable: PageRequestDto,
-    ): PageResponseDto<OpinionListNameAndOwnerDto> =
-        opinionListService
-            .getApprovedListsWithNamesAndOwners(requesterId, pageable.toPageable())
-            .map { info -> opinionListMapper.toNameAndOwnerDto(info) }
-            .toResponse()
-
-    fun getMineNamesOnly(
-        ownerId: UUID,
-        pageable: PageRequestDto,
-    ): PageResponseDto<OpinionListNameDto> =
-        opinionListService
-            .getMine(ownerId, pageable.toPageable())
-            .map { info -> opinionListMapper.toNameDto(info) }
-            .toResponse()
-
     fun syncWithOpinionList(
         userId: UUID,
         existingListId: UUID,
