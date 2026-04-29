@@ -22,4 +22,20 @@ interface ReferentRepository : JpaRepository<ReferentPersistence, UUID> {
     fun findIdsByAddressContainingIgnoreCase(
         @Param("address") address: String,
     ): Set<UUID>
+
+    @Query(
+        """
+        SELECT r.id FROM ReferentPersistence r
+        WHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+        AND (6371000 * acos(
+            least(1.0, greatest(-1.0, cos(radians(:lat)) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians(:lng)) +
+            sin(radians(:lat)) * sin(radians(r.latitude))))
+        )) <= :radius
+        """,
+    )
+    fun findIdsByLocationRadius(
+        @Param("lat") lat: Double,
+        @Param("lng") lng: Double,
+        @Param("radius") radiusInMeters: Double,
+    ): Set<UUID>
 }

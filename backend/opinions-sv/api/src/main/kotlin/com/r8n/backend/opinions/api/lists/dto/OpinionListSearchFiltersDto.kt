@@ -11,4 +11,7 @@ data class OpinionListSearchFiltersDto(
     val someOpinionsYoungerThan: Instant? = null,
     val containsSubjectSubstring: String? = null,
     val findThisTextInAnyOfTheAbove: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val radiusInMeters: Double? = null,
 )

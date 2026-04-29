@@ -30,12 +30,6 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
-data class OpinionListSearchResult(
-    val persistence: OpinionListPersistence,
-    val opinionsCount: Long,
-    val grantedAccessCount: Long,
-)
-
 @Service
 class OpinionListService(
     private val opinionListRepository: OpinionListRepository,
@@ -404,7 +398,8 @@ class OpinionListService(
                 !filters.containsLocationSubstring.isNullOrBlank() ||
                 filters.someOpinionsYoungerThan != null ||
                 !filters.containsSubjectSubstring.isNullOrBlank() ||
-                !filters.findThisTextInAnyOfTheAbove.isNullOrBlank()
+                !filters.findThisTextInAnyOfTheAbove.isNullOrBlank() ||
+                (filters.latitude != null && filters.longitude != null && filters.radiusInMeters != null)
 
         if (!hasFilters) {
             return Page.empty(pageable)
@@ -433,7 +428,7 @@ class OpinionListService(
             return Page.empty(pageable)
         }
 
-        var resultIds: MutableSet<UUID> = baseListIds
+        val resultIds: MutableSet<UUID> = baseListIds
 
         // Apply additional filters as intersections
         filters.containsLocationSubstring?.trim()?.takeIf { it.isNotBlank() }?.let { loc ->
@@ -458,6 +453,29 @@ class OpinionListService(
                 val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
                 if (opinionIds.isNotEmpty()) {
                     opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
+                } else emptySet()
+            } else emptySet()
+            resultIds.retainAll(listIds)
+        }
+
+        if (resultIds.isEmpty()) return Page.empty(pageable)
+
+        val lat = filters.latitude
+        val lng = filters.longitude
+        val radius = filters.radiusInMeters
+        if (lat != null && lng != null && radius != null) {
+            val referentIds = referentRepository.findIdsByLocationRadius(
+                lat,
+                lng,
+                radius
+            )
+            val listIds = if (referentIds.isNotEmpty()) {
+                val subjectIds = subjectRepository.findIdsByReferentIn(referentIds)
+                if (subjectIds.isNotEmpty()) {
+                    val opinionIds = opinionRepository.findIdsBySubjectIn(subjectIds)
+                    if (opinionIds.isNotEmpty()) {
+                        opinionsAssignmentRepository.findOpinionListIdsByOpinionIn(opinionIds)
+                    } else emptySet()
                 } else emptySet()
             } else emptySet()
             resultIds.retainAll(listIds)

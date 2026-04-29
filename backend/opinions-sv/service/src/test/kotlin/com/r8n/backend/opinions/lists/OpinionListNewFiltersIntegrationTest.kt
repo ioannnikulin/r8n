@@ -234,4 +234,71 @@ class OpinionListNewFiltersIntegrationTest {
         val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
         assertThat(page.items.map { it.listName }).contains("FindMe List", "S List", "A List")
     }
+
+    @Test
+    fun `search by lat-long and radius works`() {
+        // We use coordinates that are far from Berlin (where seed data is)
+        // Tokyo: 35.6895, 139.6917
+        // Yokohama (approx 30km from Tokyo): 35.4437, 139.6380
+
+        val tokyoReferent = referentRepository.save(
+            ReferentPersistence(
+                name = "Tokyo Spot",
+                address = "Tokyo",
+                latitude = 35.6895,
+                longitude = 139.6917,
+                referentGroup = UUID.randomUUID()
+            )
+        )
+        val yokohamaReferent = referentRepository.save(
+            ReferentPersistence(
+                name = "Yokohama Spot",
+                address = "Yokohama",
+                latitude = 35.4437,
+                longitude = 139.6380,
+                referentGroup = UUID.randomUUID()
+            )
+        )
+
+        val tokyoSubject = subjectRepository.save(OpinionSubjectPersistence(name = "Tokyo Sub", referent = tokyoReferent.id!!))
+        val yokohamaSubject = subjectRepository.save(OpinionSubjectPersistence(name = "Yokohama Sub", referent = yokohamaReferent.id!!))
+
+        val tokyoOpinion = opinionRepository.save(OpinionPersistence(owner = USER_ID, subject = tokyoSubject.id!!, status = OpinionStatusEnum.PUBLISHED, timestamp = Instant.now(), mark = null))
+        val yokohamaOpinion = opinionRepository.save(OpinionPersistence(owner = USER_ID, subject = yokohamaSubject.id!!, status = OpinionStatusEnum.PUBLISHED, timestamp = Instant.now(), mark = null))
+
+        val tokyoList = opinionListRepository.save(OpinionListPersistence(owner = USER_ID, name = "Tokyo List", privacy = OpinionListPrivacyEnum.SEARCHABLE))
+        val yokohamaList = opinionListRepository.save(OpinionListPersistence(owner = USER_ID, name = "Yokohama List", privacy = OpinionListPrivacyEnum.SEARCHABLE))
+
+        opinionsAssignmentRepository.save(OpinionsToOpinionListsPersistence(opinionList = tokyoList.id!!, opinion = tokyoOpinion.id!!, weight = 1.0))
+        opinionsAssignmentRepository.save(OpinionsToOpinionListsPersistence(opinionList = yokohamaList.id!!, opinion = yokohamaOpinion.id!!, weight = 1.0))
+
+        // Search within 5km of Tokyo center - should only find Tokyo List
+        val result5km = mockMvc.perform(
+            get("/api/opinion-lists/search")
+                .header("Authorization", userToken)
+                .param("latitude", "35.6895")
+                .param("longitude", "139.6917")
+                .param("radiusInMeters", "5000.0")
+                .param("page", "0")
+                .param("size", "10")
+        ).andExpect(status().isOk).andReturn()
+
+        val page5km = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result5km.response.contentAsString)
+        assertThat(page5km.items.map { it.listName }).containsExactly("Tokyo List")
+
+        // Search within 40km of Tokyo center - should find both
+        val result40km = mockMvc.perform(
+            get("/api/opinion-lists/search")
+                .header("Authorization", userToken)
+                .param("latitude", "35.6895")
+                .param("longitude", "139.6917")
+                .param("radiusInMeters", "40000.0")
+                .param("page", "0")
+                .param("size", "10")
+        ).andExpect(status().isOk).andReturn()
+
+        val page40km = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result40km.response.contentAsString)
+        assertThat(page40km.items.map { it.listName }).contains("Tokyo List", "Yokohama List")
+        assertThat(page40km.items.map { it.listName }).doesNotContain("Berlin List")
+    }
 }
