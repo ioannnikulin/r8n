@@ -30,11 +30,19 @@ class OpinionListSearchRestClient(
                     .queryParamIfPresent("nameSubstring", Optional.ofNullable(filters.nameSubstring))
                     .queryParamIfPresent("authorId", Optional.ofNullable(filters.authorId))
                     .queryParamIfPresent("authorNameSubstring", Optional.ofNullable(filters.authorNameSubstring))
-                    .queryParamIfPresent("containsLocationSubstring", Optional.ofNullable(filters.containsLocationSubstring))
-                    .queryParamIfPresent("someOpinionsYoungerThan", Optional.ofNullable(filters.someOpinionsYoungerThan))
-                    .queryParamIfPresent("containsSubjectSubstring", Optional.ofNullable(filters.containsSubjectSubstring))
-                    .queryParamIfPresent("findThisTextInAnyOfTheAbove", Optional.ofNullable(filters.findThisTextInAnyOfTheAbove))
-                    .queryParam("page", pageable.page)
+                    .queryParamIfPresent(
+                        "containsLocationSubstring",
+                        Optional.ofNullable(filters.locationFilter?.containsLocationSubstring),
+                    ).queryParamIfPresent(
+                        "someOpinionsYoungerThan",
+                        Optional.ofNullable(filters.someOpinionsYoungerThan),
+                    ).queryParamIfPresent(
+                        "containsSubjectSubstring",
+                        Optional.ofNullable(filters.containsSubjectSubstring),
+                    ).queryParamIfPresent(
+                        "findThisTextInAnyOfTheAbove",
+                        Optional.ofNullable(filters.findThisTextInAnyOfTheAbove),
+                    ).queryParam("page", pageable.page)
                     .queryParam("size", pageable.size)
                     .apply {
                         pageable.sort.forEach {
@@ -60,7 +68,9 @@ class OpinionListSearchRestClient(
             }.retrieve()
             .body<PageResponseDto<OpinionListSummaryDto>>()!!
 
-    override fun getApprovedListsWithNamesAndOwners(pageable: PageRequestDto): PageResponseDto<OpinionListNameAndOwnerDto> =
+    override fun getApprovedListsWithNamesAndOwners(
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionListNameAndOwnerDto> =
         restClient
             .get()
             .uri { uriBuilder ->

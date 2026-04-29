@@ -21,7 +21,8 @@ import java.util.UUID
 @RestController
 class StubOpinionListController(
     private val opinionListFacade: OpinionListFacade,
-) : OpinionListsApi, OpinionListsSearchApi {
+) : OpinionListsApi,
+    OpinionListsSearchApi {
     @PreAuthorize(IS_USER)
     override fun getListSummary(listId: UUID): OpinionListSummaryDto =
         opinionListFacade.getListSummary(listId, getCurrentUserId())
@@ -90,7 +91,9 @@ class StubOpinionListController(
     override fun getMine(pageable: PageRequestDto) = opinionListFacade.getMine(getCurrentUserId(), pageable)
 
     @PreAuthorize(IS_USER)
-    override fun getApprovedListsWithNamesAndOwners(pageable: PageRequestDto): PageResponseDto<OpinionListNameAndOwnerDto> =
+    override fun getApprovedListsWithNamesAndOwners(
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionListNameAndOwnerDto> =
         opinionListFacade.getApprovedListsWithNamesAndOwners(getCurrentUserId(), pageable)
 
     @PreAuthorize(IS_USER)

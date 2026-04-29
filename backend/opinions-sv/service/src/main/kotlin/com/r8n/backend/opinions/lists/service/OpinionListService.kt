@@ -367,21 +367,22 @@ class OpinionListService(
         val listIds = approvedRequests.map { it.list }.content
         val lists = opinionListRepository.findAllById(listIds).associateBy { it.id }
 
-        val infoList = approvedRequests.content.mapNotNull { request ->
-            val list = lists[request.list]
-            if (list != null && list.privacy == OpinionListPrivacyEnum.SEARCHABLE) {
-                OpinionListInfo(
-                    id = list.id!!,
-                    name = list.name,
-                    owner = list.owner,
-                    privacy = list.privacy,
-                    opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
-                    grantedAccessCount = accessService.countAcceptedForList(list.id!!),
-                )
-            } else {
-                null
+        val infoList =
+            approvedRequests.content.mapNotNull { request ->
+                val list = lists[request.list]
+                if (list != null && list.privacy == OpinionListPrivacyEnum.SEARCHABLE) {
+                    OpinionListInfo(
+                        id = list.id!!,
+                        name = list.name,
+                        owner = list.owner,
+                        privacy = list.privacy,
+                        opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
+                        grantedAccessCount = accessService.countAcceptedForList(list.id!!),
+                    )
+                } else {
+                    null
+                }
             }
-        }
         return PageImpl(infoList, pageable, approvedRequests.totalElements)
     }
 
@@ -439,32 +440,47 @@ class OpinionListService(
             filters.someOpinionsYoungerThan != null ||
             !filters.containsSubjectSubstring.isNullOrBlank() ||
             !filters.findThisTextInAnyOfTheAbove.isNullOrBlank() ||
-            (filters.locationFilter?.latitude != null &&
-                filters.locationFilter.longitude != null &&
-                filters.locationFilter.radiusInMeters != null)
+            (
+                filters.locationFilter?.latitude != null &&
+                    filters.locationFilter.longitude != null &&
+                    filters.locationFilter.radiusInMeters != null
+            )
 
     private fun getAuthorIdsFromName(authorNameSubstring: String?): Set<UUID>? =
         if (!authorNameSubstring.isNullOrBlank()) {
-            usersApi.findUsersByNameSubstring(authorNameSubstring).map { it.id }.toSet().ifEmpty { null }
+            usersApi
+                .findUsersByNameSubstring(authorNameSubstring)
+                .map { it.id }
+                .toSet()
+                .ifEmpty { null }
         } else {
             null
         }
 
-    private fun filterByLocationSubstring(resultIds: MutableSet<UUID>, loc: String?) {
+    private fun filterByLocationSubstring(
+        resultIds: MutableSet<UUID>,
+        loc: String?,
+    ) {
         loc?.trim()?.takeIf { it.isNotBlank() }?.let { substring ->
             val referentIds = referentRepository.findIdsByAddressContainingIgnoreCase(substring)
             resultIds.retainAll(findListIdsByReferents(referentIds))
         }
     }
 
-    private fun filterBySubjectSubstring(resultIds: MutableSet<UUID>, sub: String?) {
+    private fun filterBySubjectSubstring(
+        resultIds: MutableSet<UUID>,
+        sub: String?,
+    ) {
         sub?.trim()?.takeIf { it.isNotBlank() }?.let { substring ->
             val subjectIds = subjectRepository.findIdsByNameContainingIgnoreCase(substring)
             resultIds.retainAll(findListIdsBySubjects(subjectIds))
         }
     }
 
-    private fun filterByLocationRadius(resultIds: MutableSet<UUID>, filter: com.r8n.backend.opinions.lists.domain.LocationFilter?) {
+    private fun filterByLocationRadius(
+        resultIds: MutableSet<UUID>,
+        filter: com.r8n.backend.opinions.lists.domain.LocationFilter?,
+    ) {
         val lat = filter?.latitude
         val lng = filter?.longitude
         val radius = filter?.radiusInMeters
@@ -474,14 +490,21 @@ class OpinionListService(
         }
     }
 
-    private fun filterByYoungerThan(resultIds: MutableSet<UUID>, youngerThan: java.time.Instant?) {
+    private fun filterByYoungerThan(
+        resultIds: MutableSet<UUID>,
+        youngerThan: java.time.Instant?,
+    ) {
         youngerThan?.let { timestamp ->
             val opinionIds = opinionRepository.findIdsByTimestampAfter(timestamp)
             resultIds.retainAll(findListIdsByOpinions(opinionIds))
         }
     }
 
-    private fun filterByTextInAny(resultIds: MutableSet<UUID>, text: String?, requesterId: UUID) {
+    private fun filterByTextInAny(
+        resultIds: MutableSet<UUID>,
+        text: String?,
+        requesterId: UUID,
+    ) {
         text?.trim()?.takeIf { it.isNotBlank() }?.let { substring ->
             val matchedListIds = mutableSetOf<UUID>()
 
@@ -529,8 +552,8 @@ class OpinionListService(
             emptySet()
         }
 
-    private fun mapToOpinionListInfo(list: OpinionListPersistence): OpinionListInfo {
-        return OpinionListInfo(
+    private fun mapToOpinionListInfo(list: OpinionListPersistence): OpinionListInfo =
+        OpinionListInfo(
             id = list.id!!,
             name = list.name,
             owner = list.owner,
@@ -538,7 +561,6 @@ class OpinionListService(
             opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
             grantedAccessCount = accessService.countAcceptedForList(list.id!!),
         )
-    }
 
     private companion object {
         fun toDomain(

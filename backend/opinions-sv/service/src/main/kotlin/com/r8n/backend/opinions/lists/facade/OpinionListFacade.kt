@@ -76,7 +76,10 @@ class OpinionListFacade(
             ).map { opinionListMapper.toSummaryDto(it) }
             .toResponse()
 
-    fun getApprovedListsWithNamesAndOwners(requesterId: UUID, pageable: PageRequestDto): PageResponseDto<OpinionListNameAndOwnerDto> =
+    fun getApprovedListsWithNamesAndOwners(
+        requesterId: UUID,
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionListNameAndOwnerDto> =
         opinionListService
             .getApprovedListsWithNamesAndOwners(requesterId, pageable.toPageable())
             .map { info -> opinionListMapper.toNameAndOwnerDto(info) }
@@ -133,14 +136,15 @@ class OpinionListFacade(
                 authorNameSubstring = authorNameSubstring,
                 someOpinionsYoungerThan = someOpinionsYoungerThan,
                 containsSubjectSubstring = containsSubjectSubstring,
-                locationFilter = locationFilter?.let {
-                    com.r8n.backend.opinions.lists.domain.LocationFilter(
-                        containsLocationSubstring = it.containsLocationSubstring,
-                        latitude = it.latitude,
-                        longitude = it.longitude,
-                        radiusInMeters = it.radiusInMeters,
-                    )
-                },
+                locationFilter =
+                    locationFilter?.let {
+                        com.r8n.backend.opinions.lists.domain.LocationFilter(
+                            containsLocationSubstring = it.containsLocationSubstring,
+                            latitude = it.latitude,
+                            longitude = it.longitude,
+                            radiusInMeters = it.radiusInMeters,
+                        )
+                    },
                 findThisTextInAnyOfTheAbove = findThisTextInAnyOfTheAbove,
             )
     }

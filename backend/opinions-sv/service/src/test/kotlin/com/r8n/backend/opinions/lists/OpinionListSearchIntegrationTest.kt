@@ -162,7 +162,7 @@ class OpinionListSearchIntegrationTest {
         // l21, l22, l23 are SEARCHABLE, owned by Bernard (10101010-...)
         // l24 is PRIVATE, owned by Bernard (10101010-...)
         
-        // I will create a private list for Anna to test she can see it
+        // a private list for Anna to test she can see it
         mockMvc
             .perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/opinion-lists")
