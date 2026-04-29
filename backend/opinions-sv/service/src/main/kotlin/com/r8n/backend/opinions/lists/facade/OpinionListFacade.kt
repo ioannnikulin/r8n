@@ -2,6 +2,7 @@ package com.r8n.backend.opinions.lists.facade
 
 import com.r8n.backend.core.api.PageRequestDto
 import com.r8n.backend.core.api.PageResponseDto
+import com.r8n.backend.core.api.SortDirection
 import com.r8n.backend.core.utils.toPageable
 import com.r8n.backend.core.utils.toResponse
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
@@ -67,14 +68,17 @@ class OpinionListFacade(
         requesterId: UUID,
         filters: OpinionListSearchFiltersDto,
         pageable: PageRequestDto,
-    ): PageResponseDto<OpinionListSummaryDto> =
-        opinionListService
-            .search(
-                requesterId = requesterId,
-                filters = filters.toDomain(),
-                pageable = pageable.toPageable(),
-            ).map { opinionListMapper.toSummaryDto(it) }
-            .toResponse()
+    ): PageResponseDto<OpinionListSummaryDto> {
+        val domainFilters = filters.toDomain()
+        
+        val page = opinionListService.search(
+            requesterId = requesterId,
+            filters = domainFilters,
+            pageable = pageable.toPageable(),
+        )
+
+        return page.map { opinionListMapper.toSummaryDto(it) }.toResponse()
+    }
 
     fun getApprovedListsWithNamesAndOwners(
         requesterId: UUID,

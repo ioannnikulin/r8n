@@ -59,10 +59,21 @@ export interface UnlinkOpinionFromListRequestDto {
   opinionId: Uuid;
 }
 
+export interface LocationFilterDto {
+  containsLocationSubstring?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusInMeters?: number;
+}
+
 export interface SearchOpinionListsFiltersDto {
   authorId?: Uuid;
   authorNameSubstring?: string;
   nameSubstring?: string;
+  someOpinionsYoungerThan?: string;
+  containsSubjectSubstring?: string;
+  locationFilter?: LocationFilterDto;
+  findThisTextInAnyOfTheAbove?: string;
 }
 
 export interface SearchOpinionListsRequestDto {
@@ -159,6 +170,13 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
         authorId: request.filters?.authorId,
         authorNameSubstring: request.filters?.authorNameSubstring,
         nameSubstring: request.filters?.nameSubstring,
+        someOpinionsYoungerThan: request.filters?.someOpinionsYoungerThan,
+        containsSubjectSubstring: request.filters?.containsSubjectSubstring,
+        findThisTextInAnyOfTheAbove: request.filters?.findThisTextInAnyOfTheAbove,
+        "locationFilter.containsLocationSubstring": request.filters?.locationFilter?.containsLocationSubstring,
+        "locationFilter.latitude": request.filters?.locationFilter?.latitude,
+        "locationFilter.longitude": request.filters?.locationFilter?.longitude,
+        "locationFilter.radiusInMeters": request.filters?.locationFilter?.radiusInMeters,
       };
 
       return client.get<PageResponseDto<OpinionListSummaryDto>>(

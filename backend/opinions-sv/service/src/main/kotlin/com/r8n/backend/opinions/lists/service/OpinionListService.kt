@@ -427,9 +427,53 @@ class OpinionListService(
         filterByTextInAny(resultIds, filters.findThisTextInAnyOfTheAbove, requesterId)
         if (resultIds.isEmpty()) return Page.empty(pageable)
 
-        return opinionListRepository
-            .findAllByIdIn(resultIds, pageable)
+        // Fetch all matching items to allow correct sorting and pagination in-memory
+        // since some fields (like opinionsCount) are not available for JPA-level sorting
+        val allMatchingInfos = opinionListRepository
+            .findAllById(resultIds)
             .map { mapToOpinionListInfo(it) }
+
+        val sortedList = if (pageable.sort.isSorted) {
+            val ownerNamesMap = if (pageable.sort.any { it.property == "ownerName" }) {
+                val ownerIds = allMatchingInfos.map { it.owner }.toSet()
+                ownerIds.associateWith { usersApi.getUserName(it) }
+            } else {
+                emptyMap()
+            }
+
+            var comparator: Comparator<OpinionListInfo>? = null
+            for (order in pageable.sort) {
+                val propComparator: Comparator<OpinionListInfo>? = when (order.property) {
+                    "listName", "name" -> compareBy<OpinionListInfo> { it.name.lowercase() }
+                    "ownerName" -> compareBy<OpinionListInfo> { ownerNamesMap[it.owner]?.lowercase() ?: "" }
+                    "opinionsCount" -> compareBy<OpinionListInfo> { it.opinionsCount }
+                    else -> null
+                }
+                if (propComparator != null) {
+                    val directedComparator = if (order.direction.isDescending) {
+                        propComparator.reversed()
+                    } else {
+                        propComparator
+                    }
+                    comparator = if (comparator == null) directedComparator else comparator.thenComparing(directedComparator)
+                }
+            }
+            if (comparator != null) allMatchingInfos.sortedWith(comparator) else allMatchingInfos
+        } else {
+            allMatchingInfos
+        }
+
+        val total = sortedList.size.toLong()
+        val start = pageable.offset.toInt()
+        val end = (start + pageable.pageSize).coerceAtMost(sortedList.size)
+        
+        val content = if (start < sortedList.size) {
+            sortedList.subList(start, end)
+        } else {
+            emptyList()
+        }
+
+        return PageImpl(content, pageable, total)
     }
 
     private fun hasFilters(filters: OpinionListSearchFilters): Boolean =

@@ -23,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -92,6 +93,77 @@ class OpinionListSearchIntegrationTest {
 
         val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
         assertThat(page.items.map { it.listName }).contains("l11")
+    }
+
+    @Test
+    fun `sorting works in search`() {
+        // Assume seed data has multiple lists. We'll sort by name DESC.
+        val result =
+            mockMvc
+                .perform(
+                    get("/api/opinion-lists/search")
+                        .header("Authorization", annaToken)
+                        .param("nameSubstring", "l")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort[0].property", "listName")
+                        .param("sort[0].direction", "DESC")
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
+        val names = page.items.map { it.listName.lowercase() }
+        assertThat(names).isEqualTo(names.sortedDescending())
+    }
+
+    @Test
+    fun `pagination with filtering and multi-factor sorting works`() {
+        // 1. Pre-seed 10 lists
+        val prefix = "Alpha "
+        for (i in 1..10) {
+            val finalName = if (i <= 8) "$prefix$i" else "Beta $i"
+            
+            mockMvc.perform(
+                post("/api/opinion-lists")
+                    .header("Authorization", annaToken)
+                    .param("name", finalName)
+                    .param("privacy", "SEARCHABLE")
+            ).andExpect(status().isOk)
+        }
+
+        // Now we have 8 lists starting with "Alpha".
+        // Let's check: request page 2, size 3.
+        // Total matching: 8.
+        // Page 0 (size 3): 1, 2, 3
+        // Page 1 (size 3): 4, 5, 6
+        // Page 2 (size 3): 7, 8
+        
+        // Let's add sorting: by ownerName ASC, then by listName DESC.
+        // Since all new lists have the same owner, it will effectively sort by listName DESC.
+        // "Alpha 8", "Alpha 7", "Alpha 6", "Alpha 5", "Alpha 4", "Alpha 3", "Alpha 2", "Alpha 1"
+        
+        // Page 0: "Alpha 8", "Alpha 7", "Alpha 6"
+        // Page 1: "Alpha 5", "Alpha 4", "Alpha 3"
+        // Page 2: "Alpha 2", "Alpha 1"
+        
+        val result = mockMvc.perform(
+            get("/api/opinion-lists/search")
+                .header("Authorization", annaToken)
+                .param("nameSubstring", "Alpha")
+                .param("page", "2")
+                .param("size", "3")
+                .param("sort[0].property", "ownerName")
+                .param("sort[0].direction", "ASC")
+                .param("sort[1].property", "listName")
+                .param("sort[1].direction", "DESC")
+        ).andExpect(status().isOk)
+        .andReturn()
+
+        val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
+        
+        assertThat(page.total).isEqualTo(8)
+        assertThat(page.items).hasSize(2)
+        assertThat(page.items.map { it.listName }).containsExactly("Alpha 2", "Alpha 1")
     }
 
     @Test
