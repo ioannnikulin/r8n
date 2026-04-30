@@ -1,8 +1,12 @@
 package com.r8n.backend.opinions.opinions.controller
 
+import com.r8n.backend.core.api.PageRequestDto
+import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.opinions.OpinionsApi
 import com.r8n.backend.opinions.api.opinions.dto.OpinionDto
+import com.r8n.backend.opinions.api.opinions.dto.RejectOpinionRequestDto
 import com.r8n.backend.opinions.opinions.facade.OpinionFacade
+import com.r8n.backend.security.Authority.IS_MODERATOR
 import com.r8n.backend.security.Authority.IS_USER
 import com.r8n.backend.security.Authority.IS_USER_OR_SERVICE
 import com.r8n.backend.security.CurrentUserIdentifier.getCurrentUserId
@@ -40,6 +44,27 @@ class OpinionsController(
     override fun deleteOpinion(opinionId: UUID) {
         opinionFacade.deleteOpinion(opinionId, getCurrentUserId())
     }
+
+    @PreAuthorize(IS_USER)
+    override fun submitOpinionForModeration(opinionId: UUID): OpinionDto =
+        opinionFacade.submitOpinionForModeration(opinionId, getCurrentUserId())
+
+    @PreAuthorize(IS_MODERATOR)
+    override fun getModerationOpinions(pageable: PageRequestDto): PageResponseDto<OpinionDto> =
+        opinionFacade.getModerationOpinions(pageable)
+
+    @PreAuthorize(IS_MODERATOR)
+    override fun getModerationDecisions(pageable: PageRequestDto) = opinionFacade.getModerationDecisions(pageable)
+
+    @PreAuthorize(IS_MODERATOR)
+    override fun approveOpinion(opinionId: UUID): OpinionDto =
+        opinionFacade.approveOpinion(opinionId, getCurrentUserId())
+
+    @PreAuthorize(IS_MODERATOR)
+    override fun rejectOpinion(
+        opinionId: UUID,
+        request: RejectOpinionRequestDto,
+    ): OpinionDto = opinionFacade.rejectOpinion(opinionId, getCurrentUserId(), request.reason)
 
     @PreAuthorize(IS_USER)
     override fun linkComponent(

@@ -7,7 +7,7 @@ import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import com.r8n.backend.security.SecurityAutoConfiguration.Companion.decodePublicKey
+import com.r8n.backend.security.SecurityCommonConfiguration.Companion.decodePublicKey
 import com.r8n.backend.security.ServiceTokenService.Companion.decodePrivateKey
 import com.r8n.backend.users.persistence.RefreshTokenPersistence
 import com.r8n.backend.users.provider.database.RefreshTokenRepository

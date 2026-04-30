@@ -16,10 +16,10 @@ import java.util.UUID
 class UserRoleAssignmentPersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
-    val id: UUID,
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    var id: UUID? = null,
 //
-    @Column(nullable = false)
+    @Column(name = "\"user\"", nullable = false)
     val user: UUID,
 //
     @Column(nullable = false)
@@ -38,4 +38,5 @@ enum class RoleEnumPersistence {
     MODERATOR,
     AI_MODERATOR,
     USER,
+    SUPPORT,
 }

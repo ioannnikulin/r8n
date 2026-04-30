@@ -5,6 +5,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useCreateOpinionListMutation } from "@/lib/server-state/hooks/opinion-lists";
+
+const IS_E2E_AUTH_BYPASS_ENABLED =
+  import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
 
 const VISIBILITY_OPTIONS = [
   { value: "private", label: "Private", desc: "Only you can see this list" },
@@ -18,15 +22,31 @@ const CreateList = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("private");
+  const createList = useCreateOpinionListMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       toast({ title: "Missing title", description: "Please give your list a name." });
       return;
     }
-    toast({ title: "List created", description: `"${title}" has been created.` });
-    navigate("/lists");
+
+    if (IS_E2E_AUTH_BYPASS_ENABLED) {
+      toast({ title: "List created", description: `"${title.trim()}" has been created.` });
+      navigate("/lists");
+      return;
+    }
+
+    try {
+      const list = await createList.mutateAsync({
+        name: title.trim(),
+        privacy: visibility === "private" ? "PRIVATE" : "SEARCHABLE",
+      });
+      toast({ title: "List created", description: `"${list.listName}" has been created.` });
+      navigate("/lists");
+    } catch {
+      // error toast is handled by mutation meta errorTitle
+    }
   };
 
   return (
@@ -107,7 +127,7 @@ const CreateList = () => {
 
           {/* Submit */}
           <div className="flex gap-3 pt-2">
-            <Button type="submit" className="rounded-xl px-8">
+            <Button type="submit" className="rounded-xl px-8" disabled={createList.isPending}>
               Create List
             </Button>
             <Button type="button" variant="ghost" onClick={() => navigate("/lists")} className="rounded-xl">

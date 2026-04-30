@@ -27,6 +27,16 @@ describe("Messages page", () => {
     expect(screen.queryByText("From you")).not.toBeInTheDocument();
   });
 
+  it("shows last seen information when hovering a thread participant avatar", async () => {
+    render(<Messages />);
+
+    const trigger = screen.getByRole("button", { name: "Marta Keller presence" });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.mouseEnter(trigger);
+
+    expect(await screen.findByText("Last seen 18 minutes ago")).toBeInTheDocument();
+  });
+
   it("filters support conversations", () => {
     render(<Messages />);
 

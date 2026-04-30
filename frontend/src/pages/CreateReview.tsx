@@ -1,12 +1,31 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ImagePlus, Search, Plus, Building2, MapPin } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Search, Plus, Building2, MapPin } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { useMyOpinionLists, useLinkOpinionToListMutation } from "@/lib/server-state/hooks/opinion-lists";
-import { useCreateOpinionMutation } from "@/lib/server-state/hooks/opinions";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useMyOpinionLists, useLinkOpinionToListMutation, useCreateOpinionListMutation } from "@/lib/server-state/hooks/opinion-lists";
+import type { OpinionListPrivacyEnumDto } from "@/lib/api/opinion-lists";
+import { useCreateOpinionMutation, useSubmitOpinionForModerationMutation } from "@/lib/server-state/hooks/opinions";
+import { useCreateSubjectMutation, useFindSubjects, useSetPrimaryReferentMutation } from "@/lib/server-state/hooks/subjects";
+import { useCreateReferentMutation, useFindReferents } from "@/lib/server-state/hooks/referents";
+import type { Uuid } from "@/lib/api/shared";
+
+const RATING_MIN = 1;
+const RATING_MAX = 10;
+const RATING_STEP = 0.1;
+
+const clampRating = (n: number) => {
+  const clamped = Math.min(RATING_MAX, Math.max(RATING_MIN, n));
+  return Math.round(clamped * 10) / 10;
+};
 
 const RatingRow = ({
   label,
@@ -18,41 +37,75 @@ const RatingRow = ({
   description: string;
   value: number | null;
   onChange: (v: number) => void;
-}) => (
-  <div>
-    <label className="mb-0.5 block text-sm font-medium text-foreground">{label}</label>
-    <p className="mb-2 text-xs text-muted-foreground">{description}</p>
-    <div className="flex gap-2">
-      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-        <motion.button
-          key={num}
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={() => onChange(num)}
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-lg border text-sm font-mono font-semibold transition-all",
-            value === num
-              ? "border-primary bg-primary text-primary-foreground"
-              : value && num <= value
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border bg-card text-muted-foreground hover:border-primary/30"
-          )}
-        >
-          {num}
-        </motion.button>
-      ))}
+}) => {
+  const sliderValue = value ?? RATING_MIN;
+  const handleNumberInput = (raw: string) => {
+    if (raw === "") return;
+    const parsed = parseFloat(raw);
+    if (Number.isNaN(parsed)) return;
+    onChange(clampRating(parsed));
+  };
+  return (
+    <div>
+      <label className="mb-0.5 block text-sm font-medium text-foreground">{label}</label>
+      <p className="mb-2 text-xs text-muted-foreground">{description}</p>
+      <div className="flex items-center gap-3">
+        <input
+          type="number"
+          min={RATING_MIN}
+          max={RATING_MAX}
+          step={RATING_STEP}
+          value={value ?? ""}
+          onChange={(e) => handleNumberInput(e.target.value)}
+          className="h-9 w-20 rounded-lg border border-border bg-card px-2 text-sm font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+        <input
+          type="range"
+          min={RATING_MIN}
+          max={RATING_MAX}
+          step={RATING_STEP}
+          value={sliderValue}
+          onChange={(e) => onChange(clampRating(parseFloat(e.target.value)))}
+          className="flex-1 accent-primary"
+          aria-label={label}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface LinkedSupplier {
-  id: string;
+  id: Uuid;
   name: string;
-  type: string;
-  isNew?: boolean;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
-const SUPPLIER_TYPES = ["Restaurant", "Café", "Brand", "Shop", "Hotel", "Service"];
+interface PhotonFeature {
+  geometry: { coordinates: [number, number] };
+  properties: {
+    osm_id?: number;
+    name?: string;
+    street?: string;
+    housenumber?: string;
+    postcode?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+}
+
+const formatPhotonAddress = (f: PhotonFeature): string => {
+  const p = f.properties;
+  const parts: string[] = [];
+  if (p.name && p.name !== p.street) parts.push(p.name);
+  if (p.street) parts.push(p.housenumber ? `${p.street} ${p.housenumber}` : p.street);
+  const local = [p.postcode, p.city].filter(Boolean).join(" ");
+  if (local) parts.push(local);
+  if (p.country && p.country !== "Germany") parts.push(p.country);
+  return parts.join(", ");
+};
 
 const SupplierSearch = ({
   value,
@@ -63,20 +116,102 @@ const SupplierSearch = ({
 }) => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [newType, setNewType] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [addressDraft, setAddressDraft] = useState("");
+  const [addressLat, setAddressLat] = useState<number | null>(null);
+  const [addressLng, setAddressLng] = useState<number | null>(null);
+  // Tracks the formatted address of the last Photon suggestion the user picked,
+  // so we only invalidate lat/lng when the typed address actually diverges from it.
+  const [selectedFormatted, setSelectedFormatted] = useState<string | null>(null);
+  const [photonSuggestions, setPhotonSuggestions] = useState<PhotonFeature[]>([]);
+  const [showPhotonDropdown, setShowPhotonDropdown] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const trimmedQuery = query.trim();
+  const findReferents = useFindReferents(
+    { query: trimmedQuery || undefined, pageable: { page: 0, size: 10 } },
+    { enabled: open },
+  );
+  const createReferent = useCreateReferentMutation();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
         setShowCreateForm(false);
+        setAddressDraft("");
+        setAddressLat(null);
+        setAddressLng(null);
+        setSelectedFormatted(null);
+        setPhotonSuggestions([]);
+        setShowPhotonDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const q = addressDraft.trim();
+    if (q.length < 3) {
+      setPhotonSuggestions([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        // Photon's free public instance: komoot's TOS asks for a meaningful
+        // User-Agent. Browsers force their own UA on `fetch` and silently drop
+        // any custom value, so we can't set one here. If volume grows enough
+        // to hit komoot's fair-use limits we should proxy through the backend
+        // and set a real UA there.
+        // lat/lon bias toward Berlin so local results rank first; results elsewhere still appear.
+        const res = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lang=en&lat=52.52&lon=13.405`,
+          { signal: ctrl.signal },
+        );
+        if (!res.ok) return;
+        const json = (await res.json()) as { features?: PhotonFeature[] };
+        setPhotonSuggestions(json.features ?? []);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") setPhotonSuggestions([]);
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [addressDraft]);
+
+  const handleCreate = async () => {
+    if (!trimmedQuery) return;
+    try {
+      const created = await createReferent.mutateAsync({
+        name: trimmedQuery,
+        address: addressDraft.trim() || null,
+        latitude: addressLat,
+        longitude: addressLng,
+      });
+      onChange({
+        id: created.id,
+        name: created.name,
+        address: created.address,
+        latitude: created.latitude,
+        longitude: created.longitude,
+      });
+      setQuery("");
+      setAddressDraft("");
+      setAddressLat(null);
+      setAddressLng(null);
+      setSelectedFormatted(null);
+      setPhotonSuggestions([]);
+      setShowPhotonDropdown(false);
+      setOpen(false);
+      setShowCreateForm(false);
+    } catch {
+      // error surfaced via mutation meta errorTitle
+    }
+  };
 
   if (value) {
     return (
@@ -84,7 +219,7 @@ const SupplierSearch = ({
         <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">{value.name}</p>
-          <p className="text-[11px] text-muted-foreground">{value.type}{value.isNew ? " · New" : ""}</p>
+          {value.address && <p className="text-[11px] text-muted-foreground">{value.address}</p>}
         </div>
         <button
           type="button"
@@ -108,6 +243,10 @@ const SupplierSearch = ({
             setQuery(e.target.value);
             setOpen(true);
             setShowCreateForm(false);
+            setAddressDraft("");
+            setAddressLat(null);
+            setAddressLng(null);
+            setSelectedFormatted(null);
           }}
           onFocus={() => setOpen(true)}
           placeholder="Search restaurant, brand, shop..."
@@ -123,13 +262,51 @@ const SupplierSearch = ({
             exit={{ opacity: 0, y: -4 }}
             className="absolute z-50 mt-1.5 w-full rounded-xl border border-border bg-card shadow-lg overflow-hidden"
           >
-            <div className="max-h-48 overflow-y-auto">
-              <p className="px-4 py-3 text-xs text-muted-foreground">
-                {query.length > 0 ? "No results found" : "Start typing to search"}
-              </p>
-            </div>
+            {findReferents.isLoading && (
+              <p className="px-4 py-3 text-xs text-muted-foreground">Searching…</p>
+            )}
 
-            {query.length > 0 && !showCreateForm && (
+            {!findReferents.isLoading && (findReferents.data?.items?.length ?? 0) > 0 && (
+              <div className="max-h-48 overflow-y-auto py-1">
+                {(findReferents.data?.items ?? []).map((referent) => {
+                  const address = referent.address;
+                  return (
+                    <button
+                      key={referent.id}
+                      type="button"
+                      onClick={() => {
+                        onChange({
+                          id: referent.id,
+                          name: referent.name,
+                          address: referent.address,
+                          latitude: referent.latitude,
+                          longitude: referent.longitude,
+                        });
+                        setQuery("");
+                        setOpen(false);
+                        setShowCreateForm(false);
+                      }}
+                      className="flex w-full flex-col gap-0.5 px-4 py-2.5 text-left hover:bg-muted/40 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-foreground">{referent.name}</span>
+                      {address ? (
+                        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {address}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">No address</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {!findReferents.isLoading
+              && trimmedQuery.length > 0
+              && (findReferents.data?.items?.length ?? 0) > 0
+              && !showCreateForm && (
               <button
                 type="button"
                 onClick={() => setShowCreateForm(true)}
@@ -140,41 +317,77 @@ const SupplierSearch = ({
               </button>
             )}
 
-            {showCreateForm && (
+            {!findReferents.isLoading
+              && trimmedQuery.length > 0
+              && (showCreateForm || (findReferents.data?.items?.length ?? 0) === 0) && (
               <div className="border-t border-border p-3 space-y-2">
-                <p className="text-xs font-medium text-foreground">Create: {query}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SUPPLIER_TYPES.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setNewType(t)}
-                      className={cn(
-                        "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all",
-                        newType === t
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-muted-foreground hover:border-primary/30"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-xs text-foreground">
+                  Add <span className="font-medium">"{trimmedQuery}"</span> as a new place
+                </p>
+                <input
+                  type="text"
+                  value={addressDraft}
+                  autoFocus={showCreateForm}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setAddressDraft(next);
+                    // Only invalidate captured coords if the typed address has
+                    // actually diverged from the picked Photon suggestion.
+                    if (selectedFormatted !== null && next !== selectedFormatted) {
+                      setAddressLat(null);
+                      setAddressLng(null);
+                      setSelectedFormatted(null);
+                    }
+                    setShowPhotonDropdown(true);
+                  }}
+                  onFocus={() => setShowPhotonDropdown(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !createReferent.isPending) {
+                      e.preventDefault();
+                      handleCreate();
+                    }
+                  }}
+                  placeholder="Address (optional, type to search)"
+                  maxLength={255}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                />
+                {showPhotonDropdown && photonSuggestions.length > 0 && (
+                  <div className="rounded-lg border border-border bg-card max-h-64 overflow-y-auto">
+                    {photonSuggestions.map((f) => {
+                      const formatted = formatPhotonAddress(f);
+                      return (
+                        <button
+                          key={`${f.properties.osm_id}-${f.geometry.coordinates.join(",")}`}
+                          type="button"
+                          onClick={() => {
+                            setAddressDraft(formatted);
+                            setSelectedFormatted(formatted);
+                            const [lng, lat] = f.geometry.coordinates;
+                            setAddressLat(lat);
+                            setAddressLng(lng);
+                            setShowPhotonDropdown(false);
+                          }}
+                          className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs hover:bg-muted/40 transition-colors"
+                        >
+                          <MapPin className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                          <span className="text-foreground">{formatted}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  Address lookup powered by Photon (komoot, OpenStreetMap data).
+                </p>
                 <Button
                   type="button"
                   size="sm"
-                  disabled={!newType}
-                  onClick={() => {
-                    onChange({ id: `new-${Date.now()}`, name: query, type: newType, isNew: true });
-                    setQuery("");
-                    setOpen(false);
-                    setShowCreateForm(false);
-                    setNewType("");
-                  }}
-                  className="w-full rounded-lg text-xs mt-1"
+                  disabled={createReferent.isPending}
+                  onClick={handleCreate}
+                  className="w-full rounded-lg text-xs"
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Add {newType || "supplier"}
+                  Add "{trimmedQuery}"
                 </Button>
               </div>
             )}
@@ -185,32 +398,153 @@ const SupplierSearch = ({
   );
 };
 
+const CreateListDialog = ({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: (listId: Uuid) => void;
+}) => {
+  const [name, setName] = useState("");
+  const [privacy, setPrivacy] = useState<OpinionListPrivacyEnumDto>("PRIVATE");
+  const createList = useCreateOpinionListMutation({
+    onSuccess: (data) => {
+      onCreated(data.id);
+      setName("");
+      setPrivacy("PRIVATE");
+      onClose();
+    },
+  });
+
+  const handleSubmit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    createList.mutate({ name: trimmed, privacy });
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          setName("");
+          setPrivacy("PRIVATE");
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create a new list</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label htmlFor="inline-create-list-name" className="text-xs font-medium text-muted-foreground">
+              List name
+            </label>
+            <input
+              id="inline-create-list-name"
+              type="text"
+              value={name}
+              autoFocus
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !createList.isPending) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              placeholder="e.g., Best espresso in Berlin"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Visibility</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["PRIVATE", "SEARCHABLE"] as OpinionListPrivacyEnumDto[]).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setPrivacy(opt)}
+                  className={`rounded-lg border px-3 py-2 text-xs text-left transition-all ${
+                    privacy === opt
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  <p className="font-medium capitalize">{opt.toLowerCase()}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                    {opt === "PRIVATE" ? "Only you can see this list" : "Discoverable by name"}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+          <Button
+            size="sm"
+            disabled={!name.trim() || createList.isPending}
+            onClick={handleSubmit}
+          >
+            Create
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const CreateReview = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [subjectName, setSubjectName] = useState("");
   const [linkedSupplier, setLinkedSupplier] = useState<LinkedSupplier | null>(null);
   const [rating, setRating] = useState<number | null>(null);
   const [objectiveText, setObjectiveText] = useState("");
   const [subjectiveText, setSubjectiveText] = useState("");
   const [selectedList, setSelectedList] = useState("");
+  const [createListDialogOpen, setCreateListDialogOpen] = useState(false);
 
   const { data: listsData } = useMyOpinionLists({ pageable: { page: 0, size: 50 } });
   const myLists = listsData?.items ?? [];
 
   const createOpinion = useCreateOpinionMutation();
   const linkOpinion = useLinkOpinionToListMutation();
+  const submitOpinion = useSubmitOpinionForModerationMutation();
+  const findSubjects = useFindSubjects(
+    {
+      query: subjectName.trim() || undefined,
+      referentId: linkedSupplier?.id,
+      pageable: { page: 0, size: 10, sort: [{ property: "name", direction: "ASC" }] },
+    },
+    { enabled: false },
+  );
+  const createSubject = useCreateSubjectMutation();
+  const setPrimaryReferent = useSetPrimaryReferentMutation();
 
-  const isSubmitting = createOpinion.isPending || linkOpinion.isPending;
+  const isSubmitting = createOpinion.isPending || linkOpinion.isPending || submitOpinion.isPending;
+
+  useEffect(() => {
+    const listId = searchParams.get("listId");
+    if (listId) {
+      setSelectedList(listId);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!linkedSupplier) {
-      toast({ title: "Missing supplier", description: "Please link this review to a place or brand." });
+    const trimmedSubject = subjectName.trim();
+    if (!trimmedSubject) {
+      toast({ title: "Missing subject", description: "Please fill in what you are reviewing." });
       return;
     }
-    if (linkedSupplier.isNew) {
-      toast({ title: "Not supported yet", description: "Creating new suppliers is not yet available." });
+    if (!linkedSupplier) {
+      toast({ title: "Missing supplier", description: "Please link this review to a place or brand." });
       return;
     }
     if (!rating) {
@@ -219,8 +553,28 @@ const CreateReview = () => {
     }
 
     try {
+      const results = await findSubjects.refetch();
+      const existingMatch = results.data?.items.find(
+        (s) => s.name.toLowerCase() === trimmedSubject.toLowerCase(),
+      );
+
+      const subject =
+        existingMatch ??
+        (await createSubject.mutateAsync({
+          name: trimmedSubject,
+          primaryReferentId: linkedSupplier.id,
+          referentName: null,
+          address: null,
+          latitude: null,
+          longitude: null,
+        }));
+
+      if (existingMatch && existingMatch.primaryReferent?.id !== linkedSupplier.id) {
+        await setPrimaryReferent.mutateAsync({ subjectId: existingMatch.id, referentId: linkedSupplier.id });
+      }
+
       const opinion = await createOpinion.mutateAsync({
-        subjectId: linkedSupplier.id,
+        subjectId: subject.id,
         mark: rating,
         subjective: subjectiveText.trim() ? [subjectiveText.trim()] : undefined,
         objective: objectiveText.trim() ? [objectiveText.trim()] : undefined,
@@ -230,7 +584,9 @@ const CreateReview = () => {
         await linkOpinion.mutateAsync({ listId: selectedList, opinionId: opinion.id });
       }
 
-      navigate("/");
+      await submitOpinion.mutateAsync({ opinionId: opinion.id });
+
+      navigate(selectedList ? `/list/${selectedList}` : "/");
     } catch {
       // errors surfaced via mutation meta errorTitle
     }
@@ -338,17 +694,6 @@ const CreateReview = () => {
             </div>
           </div>
 
-          {/* Photos */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Photos</label>
-            <div className="flex h-24 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">
-              <div className="flex items-center gap-2 text-sm">
-                <ImagePlus className="h-4 w-4" />
-                Add photos
-              </div>
-            </div>
-          </div>
-
           {/* Add to list */}
           <div>
             <label htmlFor="review-selected-list" className="mb-1.5 block text-sm font-medium text-foreground">
@@ -369,7 +714,7 @@ const CreateReview = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate("/lists/create")}
+                onClick={() => setCreateListDialogOpen(true)}
                 className="rounded-xl shrink-0 gap-1.5"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -378,10 +723,16 @@ const CreateReview = () => {
             </div>
           </div>
 
+          <CreateListDialog
+            open={createListDialogOpen}
+            onClose={() => setCreateListDialogOpen(false)}
+            onCreated={(listId) => setSelectedList(listId)}
+          />
+
           {/* Submit */}
           <div className="flex gap-3 pt-2">
             <Button type="submit" className="rounded-xl px-8" disabled={isSubmitting}>
-              {isSubmitting ? "Saving…" : "Publish Review"}
+              {isSubmitting ? "Submitting…" : "Submit for Review"}
             </Button>
             <Button type="button" variant="ghost" onClick={() => navigate("/")} className="rounded-xl" disabled={isSubmitting}>
               Cancel

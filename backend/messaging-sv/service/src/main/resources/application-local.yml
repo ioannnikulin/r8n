@@ -1,0 +1,28 @@
+server.port: ${SERVICES_MESSAGING_PORT}
+spring:
+  application.name: messaging-sv
+  liquibase:
+    enabled: true
+    change-log: db/changelog/messaging/db.changelog-master.sql
+    default-schema: messaging
+    liquibase-schema: public
+    contexts: local
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_HOST_PORT}/${DATABASE_NAME}?currentSchema=messaging
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    defer-datasource-initialization: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+springdoc:
+  packages-to-scan: com.r8n.backend.messaging.controller, com.r8n.backend.messaging.api
+r8n:
+  security:
+    public-paths: /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
+    jwt:
+      public-key: ${JWT_PUBLIC_KEY}

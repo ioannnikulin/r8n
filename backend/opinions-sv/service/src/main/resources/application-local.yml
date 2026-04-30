@@ -1,4 +1,11 @@
 server.port: ${SERVICES_OPINIONS_PORT}
+
+
+
+
+
+
+
 spring:
   application.name: opinions-sv
   liquibase:
@@ -18,6 +25,8 @@ spring:
   sql:
     init:
       mode: never
+springdoc:
+  packages-to-scan: com.r8n.backend.opinions.opinions.controller, com.r8n.backend.opinions.lists.controller, com.r8n.backend.opinions.access.controller
 services:
   users:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}

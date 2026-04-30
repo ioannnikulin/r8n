@@ -14,8 +14,8 @@ import java.util.UUID
 class UserSessionPersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
-    val id: UUID,
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    var id: UUID,
 //
     @Column(nullable = false)
     val userId: UUID,
@@ -28,6 +28,9 @@ class UserSessionPersistence(
 //
     @Column(nullable = false)
     val ip: String,
+//
+    @Column(nullable = false)
+    val os: String,
 //
     @Column(nullable = false)
     val userAgent: String,

@@ -4,6 +4,7 @@ import { authApi } from "@/lib/api";
 import type {
   AuthenticationTokenDto,
   LoginRequestDto,
+  RegisterRequestDto,
 } from "@/lib/api/auth";
 import {
   clearAuthSession,
@@ -30,6 +31,24 @@ export function useLoginMutation(
       setAuthSession(data);
       options?.onSuccess?.(data, variables, context);
     },
+  });
+}
+
+export function useRegisterMutation(
+  options?: UseMutationOptions<
+    void,
+    Error,
+    RegisterRequestDto,
+    unknown
+  >,
+) {
+  return useMutation({
+    mutationFn: (variables: RegisterRequestDto) => authApi.register(variables),
+    ...options,
+    meta: {
+      errorTitle: "Registration failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
   });
 }
 

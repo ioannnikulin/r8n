@@ -1,24 +1,26 @@
 server:
   port: ${SERVICES_EXPORT_PORT}
   ssl:
-    enabled: ${SERVER_SSL_ENABLED:false}
+    enabled: ${SERVER_SSL_ENABLED}
     key-store: ${SERVER_SSL_KEY_STORE}
     key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD}
-    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE:PKCS12}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE}
     key-alias: ${SERVER_SSL_KEY_ALIAS}
-
 spring:
   application.name: export-sv
-
+springdoc:
+  packages-to-scan: com.r8n.backend.export.controller, com.r8n.backend.export.api
 services:
   users:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
   opinions:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
+  messaging:
+    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MESSAGING_HOST}:${SERVICES_MESSAGING_PORT}
   mock:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
-
 r8n:
   security:
+    public-paths: /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
     jwt:
       public-key: ${JWT_PUBLIC_KEY}

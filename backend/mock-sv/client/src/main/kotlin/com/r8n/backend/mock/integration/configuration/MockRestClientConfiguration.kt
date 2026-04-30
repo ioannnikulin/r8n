@@ -1,9 +1,7 @@
 package com.r8n.backend.mock.integration.configuration
 
-import com.r8n.backend.mock.api.MessagingApi
 import com.r8n.backend.mock.api.RecommendationApi
 import com.r8n.backend.mock.api.SelectorApi
-import com.r8n.backend.mock.integration.client.MessagingRestClient
 import com.r8n.backend.mock.integration.client.RecommendationRestClient
 import com.r8n.backend.mock.integration.client.SelectorRestClient
 import com.r8n.backend.security.SecurityContextTokenInterceptor
@@ -37,9 +35,4 @@ class MockRestClientConfiguration {
     fun selectorRestClient(
         @Qualifier("mockRestBaseClient") mockRestBaseClient: RestClient,
     ): SelectorApi = SelectorRestClient(mockRestBaseClient)
-
-    @Bean
-    fun messagingRestClient(
-        @Qualifier("mockRestBaseClient") mockRestBaseClient: RestClient,
-    ): MessagingApi = MessagingRestClient(mockRestBaseClient)
 }

@@ -29,12 +29,9 @@ logging:
   level:
     root: ERROR
 
-services:
-  mock:
-    url: http://localhost:8090
 r8n:
   security:
-    public-paths: /api/auth/**
+    public-paths: /api/auth/**, /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
     jwt:
       private-key: |
         -----BEGIN PRIVATE KEY-----

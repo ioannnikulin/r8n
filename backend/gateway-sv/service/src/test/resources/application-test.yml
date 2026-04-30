@@ -13,6 +13,12 @@ spring:
       server:
         webflux:
           routes:
+            - id: block_internal
+              uri: no-forward://internal
+              predicates:
+                - Path=/api/internal/**
+              filters:
+                - SetStatus=403
             - id: auth
               uri: http://localhost:8082
               predicates:
@@ -20,12 +26,41 @@ spring:
             - id: opinions
               uri: http://localhost:8081
               predicates:
-                - Path=/api/access-requests/**,/api/opinion-lists/**,/api/opinions/**
+                - Path=/api/access-requests/**,/api/opinion-lists/**,/api/opinions/**,/api/subjects/**,/api/referents/**
             - id: users
               uri: http://localhost:8082
               predicates:
                 - Path=/api/users/**
+            - id: messaging
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/messaging/**
             - id: mock
               uri: http://localhost:8090
               predicates:
                 - Path=/api/selectors/**
+            - id: public_subjects
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/public/subjects,/api/public/subjects/**
+              filters:
+                - ApiKeyAuthenticationFilter
+                - name: RateLimitingFilter
+                  args:
+                    limit: 100
+                    durationSeconds: 60
+                - RewritePath=/api/public/subjects/?(?<segment>.*), /api/subjects/$\{segment}
+r8n:
+  security:
+    public-paths: /api/auth/**
+    jwt:
+      public-key: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsyZQ94kMeQ05/dkEWP7b
+        4tDMhdLLl6t7Q0zcgQT99bvqcJ4RfN0dTgJqa71IW/5Wmldm6fxw3zN3YJl+mbFU
+        VFB6O25Oc1s8cYiVF6KAXrSstvnxBcu3VVHBVFRnIFrWLmQZIs53j3j9Rc8VGqoa
+        GP0acgQ7Yd8/RU8iPra49pNG9A6NPJg/uddkwDOWMNGDWVVZm3gQBi/O/AHCmWwl
+        FqB22+XkhKEQDn68iPn+urcWdjAhXihQ8RknwBn72qaD845+O36qj74Q3s+iu5Au
+        0h9eqIt3ecjtLNxwj5mqvp1Q1pmZyzX445o2713fRMcBmlGSVlcIywPvY06WXpD5
+        qwIDAQAB
+        -----END PUBLIC KEY-----

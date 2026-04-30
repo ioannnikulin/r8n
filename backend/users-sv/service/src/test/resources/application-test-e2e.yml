@@ -1,4 +1,4 @@
-server.port: ${SERVICES_USERS_PORT:8082}
+server.port: ${SERVICES_USERS_PORT}
 
 
 
@@ -21,13 +21,18 @@ spring:
   sql:
     init:
       mode: never
-services:
-  mock:
-    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
 r8n:
   security:
+    public-paths: /api/auth/**, /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
+    jwt:
+      private-key: ${JWT_PRIVATE_KEY}
+      public-key: ${JWT_PUBLIC_KEY}
     refresh-cookie:
       secure: false
       same-site: Strict
       path: /api/auth
       max-age: 30d
+  storage:
+    avatar:
+      local-root: ${java.io.tmpdir}/r8n-test/uploads/avatars
+      max-size: 2MB

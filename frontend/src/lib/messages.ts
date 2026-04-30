@@ -12,6 +12,7 @@ export interface MessageThread {
   id: string;
   subject: string;
   participantName: string;
+  participantLastSeenAt: string | null;
   participantRole: string;
   context: string;
   updatedAt: string;
@@ -24,6 +25,7 @@ export const MOCK_MESSAGE_THREADS: MessageThread[] = [
     id: "thread-user-1",
     subject: "Question about your coffee grinder review",
     participantName: "Marta Keller",
+    participantLastSeenAt: new Date(Date.now() - 18 * 60_000).toISOString(),
     participantRole: "User",
     context: "Direct message",
     updatedAt: "18m ago",
@@ -56,6 +58,7 @@ export const MOCK_MESSAGE_THREADS: MessageThread[] = [
     id: "thread-support-1",
     subject: "Export archive request",
     participantName: "R8N Support",
+    participantLastSeenAt: null,
     participantRole: "Support",
     context: "Support conversation",
     updatedAt: "1h ago",
@@ -81,6 +84,7 @@ export const MOCK_MESSAGE_THREADS: MessageThread[] = [
     id: "thread-user-2",
     subject: "Supplier recommendation follow-up",
     participantName: "Elena Rossi",
+    participantLastSeenAt: new Date(Date.now() - 26 * 60 * 60_000).toISOString(),
     participantRole: "User",
     context: "Direct message",
     updatedAt: "Yesterday",

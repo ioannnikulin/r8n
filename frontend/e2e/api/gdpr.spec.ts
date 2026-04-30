@@ -12,7 +12,7 @@ test.describe("GDPR / Export API", () => {
 
   test("should return GDPR data when authenticated with valid token", async ({ request }) => {
     // 1. Get CSRF token
-    const csrfResponse = await request.post("/api/auth/login");
+    const csrfResponse = await request.get("/api/auth/csrf");
     const cookies = csrfResponse.headers()["set-cookie"] || "";
     const csrfToken = cookies.match(/XSRF-TOKEN=([^;]+)/)?.[1];
     expect(csrfToken).toBeDefined();

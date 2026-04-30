@@ -12,6 +12,8 @@ services:
     url: http://localhost:8080
   opinions:
     url: http://localhost:8083
+  messaging:
+    url: http://localhost:8084
   mock:
     url: http://localhost:8090
 

@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -50,6 +51,7 @@ import java.util.UUID
 @Import(TestObjectMapperConfiguration::class)
 class UsersIntegrationTests {
     private companion object {
+        @Suppress("unused") // used to store test database container
         @Container
         @ServiceConnection
         val postgres: PostgreSQLContainer =
@@ -81,29 +83,31 @@ class UsersIntegrationTests {
     @BeforeEach
     fun setUp() {
         jdbcTemplate.update("DELETE FROM users.profile_avatars")
+        // Profile update tests mutate the seeded user, so reset public profile fields
+        // to keep this test class independent from method execution order.
+        jdbcTemplate.update(
+            "UPDATE users.pii SET name = ?, about = ?, location = ? WHERE user_id = ?",
+            "Test Testsson",
+            "I am a coffee expert",
+            "Berlin, Germany",
+            UUID.fromString(USER_ID),
+        )
     }
 
     private fun userAccessToken() = tokenService.generateAccessToken(UUID.fromString(USER_ID), listOf("USER"))
 
     @Test
     @WithMockUser(username = USER_ID)
-    fun `getUserProfile returns profile with current online timestamp`() {
+    fun `getUserProfile returns profile with last seen timestamp`() {
         // Given
         val userId = UUID.fromString("10101010-1010-1010-1010-101010101010")
-        val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+        val lastSeenAt = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MILLIS)
 
-        // Using JdbcTemplate to avoid Hibernate state issues
         jdbcTemplate.update(
-            "INSERT INTO users.sessions (id, user_id, created, expires, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?)",
-            UUID.randomUUID(),
+            "UPDATE users.users SET last_seen_at = ? WHERE id = ?",
+            Timestamp.from(lastSeenAt),
             userId,
-            Timestamp.from(now),
-            Timestamp.from(now.plus(1, ChronoUnit.HOURS)),
-            "127.0.0.1",
-            "Test Agent",
         )
-
-        val beforeRequest = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
         val accessToken = tokenService.generateAccessToken(UUID.fromString(USER_ID), listOf("USER"))
 
@@ -125,11 +129,136 @@ class UsersIntegrationTests {
         assertEquals("I am a bratwurst expert", actual.about)
         assertEquals("Munich, Germany", actual.location)
 
-        assertTrue(actual.lastOnline != null, "lastOnline should not be null")
-        assertTrue(
-            !actual.lastOnline!!.isBefore(beforeRequest),
-            "lastOnline (${actual.lastOnline}) should be after or equal to beforeRequest ($beforeRequest)",
-        )
+        assertTrue(actual.lastSeenAt != null, "lastSeenAt should not be null")
+        assertEquals(lastSeenAt, actual.lastSeenAt)
+    }
+
+    @Test
+    fun `update my profile persists normalized public profile fields`() {
+        val requestBody =
+            objectMapper.writeValueAsString(
+                mapOf(
+                    "name" to "  Updated Testsson  ",
+                    "about" to "  Privacy-conscious coffee reviewer  ",
+                    "location" to "  Hamburg, Germany  ",
+                ),
+            )
+
+        val result =
+            mockMvc
+                .perform(
+                    patch("/api/users/me/public-profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(csrf())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer ${userAccessToken()}"),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val actual: UserProfileDto = objectMapper.readValue(result.response.contentAsString)
+        assertEquals(UUID.fromString(USER_ID), actual.id)
+        assertEquals("Updated Testsson", actual.name)
+        assertEquals("Privacy-conscious coffee reviewer", actual.about)
+        assertEquals("Hamburg, Germany", actual.location)
+
+        val persisted =
+            jdbcTemplate.queryForMap(
+                "SELECT name, about, location FROM users.pii WHERE user_id = ?",
+                UUID.fromString(USER_ID),
+            )
+        assertEquals("Updated Testsson", persisted["name"])
+        assertEquals("Privacy-conscious coffee reviewer", persisted["about"])
+        assertEquals("Hamburg, Germany", persisted["location"])
+    }
+
+    @Test
+    fun `update my profile stores blank optional fields as null`() {
+        val requestBody =
+            objectMapper.writeValueAsString(
+                mapOf(
+                    "name" to "Test Testsson",
+                    "about" to "   ",
+                    "location" to "",
+                ),
+            )
+
+        val result =
+            mockMvc
+                .perform(
+                    patch("/api/users/me/public-profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(csrf())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer ${userAccessToken()}"),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val actual: UserProfileDto = objectMapper.readValue(result.response.contentAsString)
+        assertEquals(null, actual.about)
+        assertEquals(null, actual.location)
+    }
+
+    @Test
+    fun `update my profile rejects blank display name`() {
+        val requestBody =
+            objectMapper.writeValueAsString(
+                mapOf(
+                    "name" to "   ",
+                    "about" to "About",
+                    "location" to "Berlin",
+                ),
+            )
+
+        mockMvc
+            .perform(
+                patch("/api/users/me/public-profile")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody)
+                    .with(csrf())
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${userAccessToken()}"),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `update my profile rejects values longer than public profile limits`() {
+        val requestBody =
+            objectMapper.writeValueAsString(
+                mapOf(
+                    "name" to "Test Testsson",
+                    "about" to "a".repeat(256),
+                    "location" to "Berlin",
+                ),
+            )
+
+        mockMvc
+            .perform(
+                patch("/api/users/me/public-profile")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody)
+                    .with(csrf())
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${userAccessToken()}"),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `update my profile rejects duplicate display name`() {
+        val requestBody =
+            objectMapper.writeValueAsString(
+                mapOf(
+                    "name" to "coffee expert Bernard",
+                    "about" to "About",
+                    "location" to "Berlin",
+                ),
+            )
+
+        mockMvc
+            .perform(
+                patch("/api/users/me/public-profile")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody)
+                    .with(csrf())
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${userAccessToken()}"),
+            ).andExpect(status().isConflict)
     }
 
     @Test

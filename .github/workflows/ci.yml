@@ -19,6 +19,9 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Check makefile
+        run: make check-makefile
+
       - name: Run backend tests
         run: make test-github-backend
         env:

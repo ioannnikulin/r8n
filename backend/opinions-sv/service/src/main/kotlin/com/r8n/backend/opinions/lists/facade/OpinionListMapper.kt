@@ -1,9 +1,13 @@
 package com.r8n.backend.opinions.lists.facade
 
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameAndOwnerDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListNameDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListPrivacyEnumDto
+import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionSummaryDto
 import com.r8n.backend.opinions.lists.domain.OpinionList
+import com.r8n.backend.opinions.lists.domain.OpinionListInfo
 import com.r8n.backend.opinions.lists.domain.OpinionListPrivacyEnum
 import com.r8n.backend.opinions.lists.domain.OpinionSummary
 import com.r8n.backend.opinions.opinions.facade.OpinionMapper
@@ -29,14 +33,47 @@ class OpinionListMapper(
             )
         }
 
+    fun toSummaryDto(
+        info: OpinionListInfo,
+        ownerName: String? = null,
+    ): OpinionListSummaryDto =
+        OpinionListSummaryDto(
+            listId = info.id,
+            listName = info.name,
+            owner = info.owner,
+            ownerName = ownerName ?: usersClient.getUserName(info.owner),
+            opinionsCount = info.opinionsCount,
+            grantedAccessCount = info.grantedAccessCount,
+            privacy = info.privacy.toDto(),
+        )
+
+    fun toNameAndOwnerDto(info: OpinionListInfo): OpinionListNameAndOwnerDto =
+        OpinionListNameAndOwnerDto(
+            listId = info.id,
+            listName = info.name,
+            owner = info.owner,
+            ownerName = usersClient.getUserName(info.owner),
+        )
+
+    fun toNameDto(info: OpinionListInfo): OpinionListNameDto =
+        OpinionListNameDto(
+            id = info.id,
+            name = info.name,
+        )
+
     fun toDto(opinionSummary: OpinionSummary) =
         with(opinionSummary) {
+            val subjectDetails = subjectService.getSubject(subject)
             OpinionSummaryDto(
                 subject = subject,
-                subjectName = subjectService.getSubjectName(subject),
+                subjectName = subjectDetails?.name ?: "UNNAMED",
+                referentName = subjectDetails?.primaryReferent?.name,
+                address = subjectDetails?.primaryReferent?.address,
+                latitude = subjectDetails?.primaryReferent?.latitude,
+                longitude = subjectDetails?.primaryReferent?.longitude,
                 ownMark = ownMark,
                 componentMark = componentMark,
-                opinions = opinions.map { opinionMapper.toDto(it) },
+                opinions = opinions.map { opinionMapper.toRowDto(it) },
             )
         }
 

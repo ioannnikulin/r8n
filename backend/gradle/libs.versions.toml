@@ -2,6 +2,7 @@
 guava = "33.4.6-jre"
 jackson = "3.1.0"
 jackson-jsr310 = "2.21.1"
+jakarta-validation = "3.1.1"
 kotlin = "2.2.21"
 liquibase = "4.27.0"
 mockito = "5.2.1"
@@ -12,7 +13,8 @@ spring-cloud = "2025.1.1"
 spring-dependency-management = "1.1.7"
 spring-gateway = "5.0.1"
 spring-web = "7.0.5"
-springdoc = "2.2.0"
+swagger = "3.0.3"
+swagger-jakarta = "2.2.48"
 ktlint = "14.0.1"
 testcontainers = "2.0.3"
 testcontainers-jupiter = "1.21.3"
@@ -33,6 +35,7 @@ jackson-annotations = { module = "tools.jackson.core:jackson-annotations", versi
 jackson-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson" }
 jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
 jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jakarta-validation = { module = "jakarta.validation:jakarta.validation-api", version.ref = "jakarta-validation" }
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-jpa = { module = "org.jetbrains.kotlin.plugin.jpa:org.jetbrains.kotlin.plugin.jpa.gradle.plugin", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
@@ -49,6 +52,7 @@ spring-boot-starter-oauth = { module = "org.springframework.boot:spring-boot-sta
 spring-boot-starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase", version.ref = "spring-boot" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
 spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test", version.ref = "spring-boot" }
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
@@ -60,7 +64,9 @@ spring-cloud-feign = { module = "org.springframework.cloud:spring-cloud-starter-
 spring-context = { module = "org.springframework:spring-context", version.ref = "spring-web" }
 spring-data-commons = { module = "org.springframework.data:spring-data-commons", version.ref = "spring-boot" }
 spring-security-test = { module = "org.springframework.security:spring-security-test", version.ref = "spring" }
-spring-swagger = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc"}
+spring-swagger-annotations-jakarta = { module = "io.swagger.core.v3:swagger-annotations-jakarta", version.ref = "swagger-jakarta"}
+spring-swagger-gateway = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "swagger"}
+spring-swagger-mvc-api = { module = "org.springdoc:springdoc-openapi-starter-webmvc-api", version.ref = "swagger"}
 spring-web = { module = "org.springframework:spring-web", version.ref = "spring-web" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers-jupiter" }

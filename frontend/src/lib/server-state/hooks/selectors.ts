@@ -1,13 +1,13 @@
 import type { QueryKey, UseMutationOptions, UseQueryOptions } from "@tanstack/react-query";
-import { selectorsApi } from "@/lib/api";
+import { messagingApi, selectorsApi } from "@/lib/api";
 import type {
   DisagreeWithSelectorRequestDto,
   GetSelectorsForSubjectRequestDto,
   GetSelectorsForUrlRequestDto,
   SelectorDto,
   SuggestSelectorRequestDto,
-  SupportThreadDto,
 } from "@/lib/api/selectors";
+import type { SupportThreadSummaryDto } from "@/lib/api/messaging";
 import type { PageResponseDto } from "@/lib/api/shared";
 import { selectorsKeys } from "@/lib/server-state/query-keys";
 import type { ApiErrorMeta } from "@/lib/server-state/query-client";
@@ -77,7 +77,7 @@ export function useSuggestSelectorMutation(
 
 export function useDisagreeWithSelectorMutation(
   options?: UseMutationOptions<
-    SupportThreadDto,
+    SupportThreadSummaryDto,
     Error,
     DisagreeWithSelectorRequestDto,
     unknown
@@ -86,7 +86,10 @@ export function useDisagreeWithSelectorMutation(
   const invalidate = useApiInvalidation();
 
   return useAuthorizedMutation({
-    mutationFn: (variables) => selectorsApi.disagree(variables),
+    mutationFn: (variables) =>
+      messagingApi.createSupportThread({
+        initialMessage: createSelectorFeedbackMessage(variables),
+      }),
     ...options,
     meta: {
       errorTitle: "Selector feedback failed",
@@ -97,4 +100,13 @@ export function useDisagreeWithSelectorMutation(
       options?.onSuccess?.(data, variables, context);
     },
   });
+}
+
+function createSelectorFeedbackMessage(
+  request: DisagreeWithSelectorRequestDto,
+): string {
+  return [
+    `Selector feedback for ${request.selectorId}`,
+    request.comment,
+  ].join("\n\n");
 }

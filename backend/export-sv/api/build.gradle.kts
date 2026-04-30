@@ -7,6 +7,7 @@ version = "0.0.1-SNAPSHOT"
 description = "export service API"
 
 dependencies {
+    api(project(":messaging-api"))
     api(project(":opinions-api"))
     api(project(":opinions-api-integration"))
     api(project(":users-api"))

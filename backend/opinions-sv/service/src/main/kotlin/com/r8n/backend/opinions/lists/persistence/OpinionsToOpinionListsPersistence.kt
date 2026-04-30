@@ -24,4 +24,11 @@ class OpinionsToOpinionListsPersistence(
 //
     @Column(nullable = false)
     var weight: Double,
-)
+) {
+    fun copy(
+        id: UUID? = this.id,
+        opinionList: UUID = this.opinionList,
+        opinion: UUID = this.opinion,
+        weight: Double = this.weight,
+    ) = OpinionsToOpinionListsPersistence(id, opinionList, opinion, weight)
+}

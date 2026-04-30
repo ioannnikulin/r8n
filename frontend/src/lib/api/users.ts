@@ -2,9 +2,12 @@ import type { HttpClient } from "@/lib/http-client";
 import { httpClient } from "@/lib/http-client";
 import type { Uuid } from "@/lib/api/shared";
 
+export type RoleDto = "USER" | "MODERATOR" | "SUPPORT" | "ADMIN";
+
 export interface UsernameDto {
   id: Uuid;
   name: string;
+  roles: RoleDto[];
 }
 
 export type UserStatusEnumDto =
@@ -17,13 +20,29 @@ export interface UserProfileDto {
   id: Uuid;
   name: string;
   status: UserStatusEnumDto;
-  lastOnline: string | null;
+  lastSeenAt: string | null;
   about: string | null;
   location: string | null;
 }
 
 export interface UploadMyAvatarRequestDto {
   file: File;
+}
+
+export interface UpdateMyPublicProfileRequestDto {
+  about: string | null;
+  location: string | null;
+  name: string;
+}
+
+export interface UserWithRolesDto {
+  id: Uuid;
+  name: string;
+  email: string;
+  status: UserStatusEnumDto;
+  isModerator: boolean;
+  isSupport: boolean;
+  isAdmin: boolean;
 }
 
 export function createUsersApi(client: HttpClient = httpClient) {
@@ -34,6 +53,16 @@ export function createUsersApi(client: HttpClient = httpClient) {
 
     getUser(id: Uuid): Promise<UserProfileDto> {
       return client.get<UserProfileDto>(`/users/${id}`, { auth: "required" });
+    },
+
+    updateMyPublicProfile(request: UpdateMyPublicProfileRequestDto): Promise<UserProfileDto> {
+      return client.patch<UserProfileDto, UpdateMyPublicProfileRequestDto>(
+        "/users/me/public-profile",
+        {
+          auth: "required",
+          body: request,
+        },
+      );
     },
 
     getUserAvatar(id: Uuid): Promise<Blob | undefined> {
@@ -56,6 +85,43 @@ export function createUsersApi(client: HttpClient = httpClient) {
 
     deleteMyAvatar(): Promise<void> {
       return client.delete<void>("/users/me/avatar", { auth: "required" });
+    },
+
+    listUsersWithRoles(): Promise<UserWithRolesDto[]> {
+      return client.get<UserWithRolesDto[]>("/admin/users", { auth: "required" });
+    },
+
+    assignModerator(userId: Uuid): Promise<void> {
+      return client.post<void, { role: string }>(`/admin/users/${userId}/roles`, {
+        auth: "required",
+        body: { role: "MODERATOR" },
+      });
+    },
+
+    revokeModerator(userId: Uuid): Promise<void> {
+      return client.delete<void>(`/admin/users/${userId}/roles/MODERATOR`, { auth: "required" });
+    },
+
+    assignSupport(userId: Uuid): Promise<void> {
+      return client.post<void, { role: string }>(`/admin/users/${userId}/roles`, {
+        auth: "required",
+        body: { role: "SUPPORT" },
+      });
+    },
+
+    revokeSupport(userId: Uuid): Promise<void> {
+      return client.delete<void>(`/admin/users/${userId}/roles/SUPPORT`, { auth: "required" });
+    },
+
+    assignAdmin(userId: Uuid): Promise<void> {
+      return client.post<void, { role: string }>(`/admin/users/${userId}/roles`, {
+        auth: "required",
+        body: { role: "ADMIN" },
+      });
+    },
+
+    revokeAdmin(userId: Uuid): Promise<void> {
+      return client.delete<void>(`/admin/users/${userId}/roles/ADMIN`, { auth: "required" });
     },
   };
 }

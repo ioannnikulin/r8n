@@ -1,0 +1,40 @@
+server:
+  port: 0
+  ssl:
+    enabled: false
+spring:
+  application.name: messaging-sv
+  liquibase:
+    enabled: true
+    change-log: db/changelog/messaging/db.changelog-master.sql
+    default-schema: messaging
+    liquibase-schema: public
+    contexts: test
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/messaging?currentSchema=messaging
+    username: test
+    password: test
+  jpa:
+    defer-datasource-initialization: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+logging:
+  level:
+    root: ERROR
+r8n:
+  security:
+    jwt:
+      public-key: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqJQMN6JhbfWrf/5FOMzb
+        LLN8rur4d24l2ucMdFJCYy2IpV9qFONNi6vTkjbIlD+btr58btRUtTuMV/VS0Hw5
+        8b3Uhuu9BSTwgR6MDEkExH2btl1Em7HM07QPntIHHqWOTvPHM7FZXeO4+rHovqJG
+        lj+GSytspgY7iCQDsDfYbzPkZr5fyuA2DEMh/iGhjc4NNRJEMcJP9OiV0rajF3GT
+        NoaSYvCO503uwf4OXVvOTB55bZ1UO7Dv1jDgWJWMYYywdSAZ9XYMDB9IeSdplul+
+        bTbKa8ImmQP+ysdWX4C+bh7gTZXTWYcFpSUF2b84t/xrNuqlcZZweMSvIfZGsk4Z
+        MQIDAQAB
+        -----END PUBLIC KEY-----

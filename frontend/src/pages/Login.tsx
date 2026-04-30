@@ -4,46 +4,105 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { useLoginMutation } from "@/lib/server-state";
+import { useLoginMutation, useRegisterMutation } from "@/lib/server-state";
 import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
+import { NavLink } from "@/components/NavLink";
+import { cn } from "@/lib/utils";
+import {
+  PROFILE_NAME_MAX_LENGTH,
+  validateLoginForm,
+  validateRegistrationForm,
+  type AuthFieldErrors,
+} from "@/lib/auth/validation";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [login, setLogin] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [gdprAccepted, setGdprAccepted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const navigate = useNavigate();
   const loginMutation = useLoginMutation({
     onSuccess: () => {
       navigate("/", { replace: true });
     },
   });
+  const registerMutation = useRegisterMutation({
+    onSuccess: (_data, variables) => {
+      toast({
+        title: "Account created",
+        description: "You are signed in and ready to continue.",
+      });
+      loginMutation.mutate({
+        login: variables.email,
+        password: variables.password,
+      });
+    },
+  });
+  const isSubmitPending = loginMutation.isPending || registerMutation.isPending;
+
+  const clearFieldError = (field: keyof AuthFieldErrors) => {
+    setFieldErrors((currentErrors) => {
+      if (currentErrors[field] === undefined) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+  };
+
+  const switchAuthMode = () => {
+    setIsSignUp((currentValue) => !currentValue);
+    setName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setGdprAccepted(false);
+    setFieldErrors({});
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (isSignUp) {
-      toast({
-        title: "Sign up is not connected yet",
-        description: "Use the sign in flow while backend registration is still missing.",
+    const validation = isSignUp
+      ? validateRegistrationForm({
+        name,
+        email,
+        password,
+        confirmPassword,
+        gdprAccepted,
+      })
+      : validateLoginForm({
+        email,
+        password,
       });
+
+    if (!validation.success) {
+      setFieldErrors(validation.errors);
       return;
     }
 
-    if (login.trim() === "" || password.trim() === "") {
-      toast({
-        title: "Missing credentials",
-        description: "Enter both login and password.",
+    setFieldErrors({});
+
+    if (isSignUp) {
+      registerMutation.mutate({
+        name: validation.data.name,
+        email: validation.data.email,
+        password: validation.data.password,
+        privacyPolicyAccepted: validation.data.gdprAccepted,
+        termsOfServiceAccepted: validation.data.gdprAccepted,
       });
       return;
     }
 
     loginMutation.mutate({
-      login: login.trim(),
-      password,
+      login: validation.data.email,
+      password: validation.data.password,
     });
   };
 
@@ -69,18 +128,61 @@ const Login = () => {
           <form
             onSubmit={handleSubmit}
             className="space-y-4"
+            noValidate
           >
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-xs">Display name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Jane Reviewer"
+                  value={name}
+                  maxLength={PROFILE_NAME_MAX_LENGTH}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clearFieldError("name");
+                  }}
+                  className={cn(
+                    "rounded-xl",
+                    fieldErrors.name && "border-destructive focus-visible:ring-destructive",
+                  )}
+                  autoComplete="name"
+                  aria-invalid={fieldErrors.name !== undefined}
+                  aria-describedby={fieldErrors.name ? "name-error" : undefined}
+                />
+                {fieldErrors.name && (
+                  <p id="name-error" role="alert" className="text-xs font-medium text-destructive">
+                    {fieldErrors.name}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="login" className="text-xs">Login</Label>
+              <Label htmlFor="email" className="text-xs">Email</Label>
               <Input
-                id="login"
-                type="text"
+                id="email"
+                type="email"
                 placeholder="test@test.test"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
-                className="rounded-xl"
-                autoComplete="username"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearFieldError("email");
+                }}
+                className={cn(
+                  "rounded-xl",
+                  fieldErrors.email && "border-destructive focus-visible:ring-destructive",
+                )}
+                autoComplete="email"
+                aria-invalid={fieldErrors.email !== undefined}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
               />
+              {fieldErrors.email && (
+                <p id="email-error" role="alert" className="text-xs font-medium text-destructive">
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -90,10 +192,24 @@ const Login = () => {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-xl"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearFieldError("password");
+                  clearFieldError("confirmPassword");
+                }}
+                className={cn(
+                  "rounded-xl",
+                  fieldErrors.password && "border-destructive focus-visible:ring-destructive",
+                )}
                 autoComplete={isSignUp ? "new-password" : "current-password"}
+                aria-invalid={fieldErrors.password !== undefined}
+                aria-describedby={fieldErrors.password ? "password-error" : undefined}
               />
+              {fieldErrors.password && (
+                <p id="password-error" role="alert" className="text-xs font-medium text-destructive">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
 
             {!isSignUp && (
@@ -110,28 +226,54 @@ const Login = () => {
                   type="password"
                   placeholder="••••••••"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-xl"
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    clearFieldError("confirmPassword");
+                  }}
+                  className={cn(
+                    "rounded-xl",
+                    fieldErrors.confirmPassword && "border-destructive focus-visible:ring-destructive",
+                  )}
+                  autoComplete="new-password"
+                  aria-invalid={fieldErrors.confirmPassword !== undefined}
+                  aria-describedby={fieldErrors.confirmPassword ? "confirm-password-error" : undefined}
                 />
+                {fieldErrors.confirmPassword && (
+                  <p id="confirm-password-error" role="alert" className="text-xs font-medium text-destructive">
+                    {fieldErrors.confirmPassword}
+                  </p>
+                )}
               </div>
             )}
 
             {isSignUp && (
-              <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={gdprAccepted}
-                    onChange={(e) => setGdprAccepted(e.target.checked)}
+              <div className="space-y-2">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gdprAccepted}
+                    onChange={(e) => {
+                      setGdprAccepted(e.target.checked);
+                      clearFieldError("gdprAccepted");
+                    }}
                     className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                    aria-invalid={fieldErrors.gdprAccepted !== undefined}
+                    aria-describedby={fieldErrors.gdprAccepted ? "gdpr-accepted-error" : undefined}
                   />
-                <span className="text-xs text-muted-foreground leading-relaxed">
-                  I agree to the{" "}
-                  <button type="button" className="text-primary hover:underline">Privacy Policy</button>{" "}
-                  and{" "}
-                  <button type="button" className="text-primary hover:underline">Terms of Service</button>.
-                  Your data is processed in accordance with GDPR.
-                </span>
-              </label>
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    I agree to the{" "}
+                    <NavLink to="/privacy" className="text-primary hover:underline">Privacy Policy</NavLink>{" "}
+                    and{" "}
+                    <NavLink to="/terms" className="text-primary hover:underline">Terms of Service</NavLink>.
+                    Your data is processed in accordance with GDPR.
+                  </span>
+                </label>
+                {fieldErrors.gdprAccepted && (
+                  <p id="gdpr-accepted-error" role="alert" className="text-xs font-medium text-destructive">
+                    {fieldErrors.gdprAccepted}
+                  </p>
+                )}
+              </div>
             )}
 
             {!isSignUp && (
@@ -142,32 +284,23 @@ const Login = () => {
               </div>
             )}
 
-            <Button type="submit" className="w-full rounded-xl">
-              {loginMutation.isPending
-                ? "Signing in..."
+            <Button type="submit" className="w-full rounded-xl" disabled={isSubmitPending}>
+              {isSubmitPending
+                ? isSignUp
+                  ? "Creating account..."
+                  : "Signing in..."
                 : isSignUp
                   ? "Create account"
                   : "Sign in"}
             </Button>
           </form>
 
-          <Separator className="my-5" />
-
-          <Button variant="outline" className="w-full rounded-xl gap-2" onClick={() => {}}>
-            <svg className="h-4 w-4" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
-          </Button>
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
           <button
-            onClick={() => setIsSignUp(!isSignUp)}
+            onClick={switchAuthMode}
             className="font-medium text-primary hover:underline"
           >
             {isSignUp ? "Sign in" : "Create one"}

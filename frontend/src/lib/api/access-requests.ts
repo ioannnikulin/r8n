@@ -66,7 +66,7 @@ export function createAccessRequestsApi(client: HttpClient = httpClient) {
     cancelOutgoing(
       request: AccessRequestActionRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.get<AccessRequestDto>(
+      return client.post<AccessRequestDto>(
         `/access-requests/outgoing/cancel/${request.requestId}`,
         {
           auth: "required",
@@ -77,7 +77,7 @@ export function createAccessRequestsApi(client: HttpClient = httpClient) {
     createOutgoing(
       request: CreateOutgoingAccessRequestRequestDto,
     ): Promise<AccessRequestDto> {
-      return client.get<AccessRequestDto>(
+      return client.post<AccessRequestDto>(
         `/access-requests/outgoing/create/${request.listId}`,
         {
           auth: "required",

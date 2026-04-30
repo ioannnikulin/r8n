@@ -1,11 +1,11 @@
 package com.r8n.backend.users.facade
 
-import com.r8n.backend.users.api.dto.ConsentDto
-import com.r8n.backend.users.api.dto.UserSessionDto
 import com.r8n.backend.users.api.dto.UserStatusEnumDto
 import com.r8n.backend.users.domain.Consent
 import com.r8n.backend.users.domain.UserSession
 import com.r8n.backend.users.domain.UserStatusEnum
+import com.r8n.backend.users.integration.api.dto.ConsentDto
+import com.r8n.backend.users.integration.api.dto.UserSessionDto
 
 fun UserStatusEnum.toDto(): UserStatusEnumDto =
     when (this) {
@@ -28,5 +28,6 @@ fun UserSession.toDto() =
         created = created,
         expires = expires,
         ip = ip,
+        os = os,
         userAgent = userAgent,
     )

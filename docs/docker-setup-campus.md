@@ -152,7 +152,7 @@ curl -ik "https://localhost:8443/api/opinions/id?id=00000000-0000-0000-0000-0000
 Gateway API:
 
 ```sh
-make https-routed-request-opinion
+make routed-request-opinion ENV=docker
 ```
 
 Expected:

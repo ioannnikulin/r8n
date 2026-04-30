@@ -138,3 +138,70 @@ CREATE TABLE users.profile_avatars (
     updated_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT fk_profile_avatar_user FOREIGN KEY (user_id) REFERENCES users.users(id) ON DELETE CASCADE
 );
+
+--changeset codex:V6_user_last_seen_at
+ALTER TABLE users.users ADD COLUMN last_seen_at TIMESTAMPTZ;
+
+--changeset iatopchu:V7_add_session_os
+--preconditions onFail:MARK_RAN
+--precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'users' AND table_name = 'sessions' AND column_name = 'os';
+ALTER TABLE users.sessions
+    ADD COLUMN os VARCHAR(255) NOT NULL DEFAULT 'Unknown';
+
+--changeset inikulin:V8_api_keys
+CREATE TABLE users.api_keys (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    key_identifier VARCHAR(255) NOT NULL,
+    key_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    last_used_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT fk_api_key_user FOREIGN KEY (user_id) REFERENCES users.users(id) ON DELETE CASCADE,
+    CONSTRAINT uk_api_keys_key_identifier UNIQUE (key_identifier)
+);
+CREATE INDEX idx_api_keys_user_id ON users.api_keys(user_id);
+CREATE INDEX idx_api_keys_key_identifier ON users.api_keys(key_identifier);
+
+--changeset inikulin:V9_preseed_api_keys
+-- raw key: 1234, identifier: test-key -> full key: r8n_test-key_1234
+INSERT INTO users.api_keys (id, user_id, key_identifier, key_hash, name, created_at)
+VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'test-key', '$2a$12$lxo9e8RbWABER4/mkU./s.njgArpJleAB9Vdq7C7rlNWIRYEw0Oym', 'Test Key', '2024-01-01T12:00:00Z');
+
+--changeset codex:V10_normalized_email_unique_index
+UPDATE users.pii SET email = lower(trim(email));
+CREATE UNIQUE INDEX idx_pii_normalized_email ON users.pii (lower(email));
+
+--changeset ditabisko:V10_seed_test_admin_role context:local,test
+INSERT INTO users.users_role_assignments (id, "user", role, granted_by, timestamp)
+VALUES ('a0a0a0a0-a0a0-a0a0-a0a0-a0a0a0a0a0a0', '00000000-0000-0000-0000-000000000000', 'ADMIN', '00000000-0000-0000-0000-000000000000', '2024-01-01T12:00:00Z')
+ON CONFLICT DO NOTHING;
+
+--changeset ditabisko:V11_seed_lena_moderator_role context:local,test
+INSERT INTO users.users_role_assignments (id, "user", role, granted_by, timestamp)
+VALUES ('b0b0b0b0-b0b0-b0b0-b0b0-b0b0b0b0b0b0', '30303030-3030-3030-3030-303030303030', 'MODERATOR', '00000000-0000-0000-0000-000000000000', '2024-01-01T12:00:00Z')
+ON CONFLICT DO NOTHING;
+
+--changeset iatopchu:V11_seed_support_role context:local,test
+--preconditions onFail:MARK_RAN
+--precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM users.users_role_assignments WHERE id = '77777777-7777-7777-7777-777777777777';
+INSERT INTO users.users_role_assignments (id, "user", role, granted_by, timestamp)
+VALUES (
+    '77777777-7777-7777-7777-777777777777',
+    '10101010-1010-1010-1010-101010101010',
+    'SUPPORT',
+    '10101010-1010-1010-1010-101010101010',
+    '2024-01-01T12:00:00Z'
+);
+
+--changeset ditabisko:V12_unique_user_role_constraint
+ALTER TABLE users.users_role_assignments
+    ADD CONSTRAINT uq_user_role UNIQUE ("user", role);
+
+--changeset ditabisko:V13_upgrade_test_user_to_admin context:local,test
+UPDATE users.users_role_assignments
+SET role = 'ADMIN'
+WHERE id = 'a0a0a0a0-a0a0-a0a0-a0a0-a0a0a0a0a0a0'
+  AND role <> 'ADMIN';

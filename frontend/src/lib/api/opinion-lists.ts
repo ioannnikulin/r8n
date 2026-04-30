@@ -35,6 +35,7 @@ export interface GetOpinionListSummaryRequestDto {
 
 export interface GetOpinionListRequestDto {
   listId: Uuid;
+  publishedAfter?: string;
 }
 
 export interface RenameOpinionListRequestDto {
@@ -50,6 +51,7 @@ export interface SetOpinionListPrivacyRequestDto {
 export interface LinkOpinionToListRequestDto {
   listId: Uuid;
   opinionId: Uuid;
+  weight?: number;
 }
 
 export interface UnlinkOpinionFromListRequestDto {
@@ -57,10 +59,21 @@ export interface UnlinkOpinionFromListRequestDto {
   opinionId: Uuid;
 }
 
+export interface LocationFilterDto {
+  containsLocationSubstring?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusInMeters?: number;
+}
+
 export interface SearchOpinionListsFiltersDto {
   authorId?: Uuid;
   authorNameSubstring?: string;
   nameSubstring?: string;
+  someOpinionsYoungerThan?: string;
+  containsSubjectSubstring?: string;
+  locationFilter?: LocationFilterDto;
+  findThisTextInAnyOfTheAbove?: string;
 }
 
 export interface SearchOpinionListsRequestDto {
@@ -71,6 +84,7 @@ export interface SearchOpinionListsRequestDto {
 export interface SyncOpinionListsRequestDto {
   addedListId: Uuid;
   existingListId: Uuid;
+  weight: number;
 }
 
 export interface UnsyncOpinionListsRequestDto {
@@ -82,8 +96,54 @@ export interface GetMyOpinionListsRequestDto {
   pageable: PageRequestDto;
 }
 
+export interface CreateOpinionListRequestDto {
+  name: string;
+  privacy: OpinionListPrivacyEnumDto;
+}
+
+export interface DeleteOpinionListRequestDto {
+  listId: Uuid;
+}
+
+export interface MoveOpinionRequestDto {
+  fromListId: Uuid;
+  toListId: Uuid;
+  opinionId: Uuid;
+  weight?: number;
+}
+
 export function createOpinionListsApi(client: HttpClient = httpClient) {
   return {
+    create(request: CreateOpinionListRequestDto): Promise<OpinionListDto> {
+      return client.post<OpinionListDto>("/opinion-lists", {
+        auth: "required",
+        query: {
+          name: request.name,
+          privacy: request.privacy,
+        },
+      });
+    },
+
+    delete(request: DeleteOpinionListRequestDto): Promise<void> {
+      return client.delete<void>(`/opinion-lists/${request.listId}`, {
+        auth: "required",
+      });
+    },
+
+    moveOpinion(request: MoveOpinionRequestDto): Promise<OpinionListDto> {
+      return client.post<OpinionListDto>(
+        `/opinion-lists/${request.fromListId}/move-opinion`,
+        {
+          auth: "required",
+          query: {
+            toListId: request.toListId,
+            opinionId: request.opinionId,
+            weight: request.weight,
+          },
+        },
+      );
+    },
+
     getMine(
       request: GetMyOpinionListsRequestDto,
     ): Promise<PageResponseDto<OpinionListSummaryDto>> {
@@ -110,6 +170,7 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
     getById(request: GetOpinionListRequestDto): Promise<OpinionListDto> {
       return client.get<OpinionListDto>(`/opinion-lists/${request.listId}`, {
         auth: "required",
+        query: request.publishedAfter ? { publishedAfter: request.publishedAfter } : undefined,
       });
     },
 
@@ -118,6 +179,7 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
         auth: "required",
         query: {
           opinionId: request.opinionId,
+          weight: request.weight,
         },
       });
     },
@@ -139,6 +201,13 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
         authorId: request.filters?.authorId,
         authorNameSubstring: request.filters?.authorNameSubstring,
         nameSubstring: request.filters?.nameSubstring,
+        someOpinionsYoungerThan: request.filters?.someOpinionsYoungerThan,
+        containsSubjectSubstring: request.filters?.containsSubjectSubstring,
+        findThisTextInAnyOfTheAbove: request.filters?.findThisTextInAnyOfTheAbove,
+        "locationFilter.containsLocationSubstring": request.filters?.locationFilter?.containsLocationSubstring,
+        "locationFilter.latitude": request.filters?.locationFilter?.latitude,
+        "locationFilter.longitude": request.filters?.locationFilter?.longitude,
+        "locationFilter.radiusInMeters": request.filters?.locationFilter?.radiusInMeters,
       };
 
       return client.get<PageResponseDto<OpinionListSummaryDto>>(
@@ -171,6 +240,7 @@ export function createOpinionListsApi(client: HttpClient = httpClient) {
           auth: "required",
           query: {
             addedListId: request.addedListId,
+            weight: request.weight,
           },
         },
       );

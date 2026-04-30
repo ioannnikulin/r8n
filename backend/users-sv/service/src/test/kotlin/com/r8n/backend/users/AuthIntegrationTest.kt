@@ -5,10 +5,13 @@ import com.r8n.backend.opinions.api.access.OutgoingAccessRequestApi
 import com.r8n.backend.opinions.integration.api.OpinionListsInternalApi
 import com.r8n.backend.users.api.AuthApi.Companion.REFRESH_TOKEN_COOKIE_NAME
 import com.r8n.backend.users.api.dto.LoginRequestDto
+import com.r8n.backend.users.api.dto.RegisterRequestDto
 import com.r8n.backend.users.provider.database.PIIRepository
 import com.r8n.backend.users.provider.database.UserRoleAssignmentRepository
 import jakarta.persistence.EntityManager
 import jakarta.servlet.http.Cookie
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -18,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
@@ -33,6 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import tools.jackson.databind.ObjectMapper
+import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
@@ -50,6 +55,7 @@ import java.util.UUID
 )
 class AuthIntegrationTest {
     private companion object {
+        @Suppress("unused") // used to store test database container
         @Container
         @ServiceConnection
         val postgres: PostgreSQLContainer =
@@ -62,9 +68,11 @@ class AuthIntegrationTest {
         // yes, this is a duplicate from AuthApi, left intentional to detect changes
         const val CSRF_PATH = "/api/auth/csrf"
         const val LOGIN_PATH = "/api/auth/login"
+        const val REGISTER_PATH = "/api/auth/register"
         const val REFRESH_PATH = "/api/auth/refresh"
         const val EMAIL = "test@test.test"
         const val PASSWORD = "1234"
+        const val REGISTRATION_PASSWORD = "long-enough-password"
     }
 
     @Autowired
@@ -84,6 +92,9 @@ class AuthIntegrationTest {
 
     @Autowired
     lateinit var entityManager: EntityManager
+
+    @Autowired
+    lateinit var jdbcTemplate: JdbcTemplate
 
     private fun extractRefreshToken(setCookieHeader: String): String =
         setCookieHeader
@@ -118,7 +129,7 @@ class AuthIntegrationTest {
 
         entityManager
             .createNativeQuery(
-                "INSERT INTO users.users_role_assignments (id, \"user\", role, granted_by, timestamp) VALUES (:id, :userId, :role, :grantedBy, :timestamp)",
+                "INSERT INTO users.users_role_assignments (id, \"user\", role, granted_by, timestamp) VALUES (:id, :userId, :role, :grantedBy, :timestamp) ON CONFLICT ON CONSTRAINT uq_user_role DO NOTHING",
             ).setParameter("id", UUID.randomUUID())
             .setParameter("userId", userId)
             .setParameter("role", "ADMIN")
@@ -129,6 +140,7 @@ class AuthIntegrationTest {
         entityManager.clear()
 
         val loginRequest = LoginRequestDto(EMAIL, PASSWORD)
+        val beforeLogin = Instant.now()
 
         val response =
             mockMvc
@@ -147,6 +159,15 @@ class AuthIntegrationTest {
         assertTrue(setCookieHeader.contains("$REFRESH_TOKEN_COOKIE_NAME="))
         assertTrue(setCookieHeader.contains("HttpOnly"))
         assertTrue(setCookieHeader.contains("Path=/api/auth"))
+
+        val lastSeenAt =
+            jdbcTemplate.queryForObject(
+                "SELECT last_seen_at FROM users.users WHERE id = ?",
+                Instant::class.java,
+                userId,
+            )
+        assertTrue(lastSeenAt != null, "last_seen_at should be set after login")
+        assertTrue(!lastSeenAt!!.isBefore(beforeLogin), "last_seen_at should be updated after login")
     }
 
     @Test
@@ -173,6 +194,163 @@ class AuthIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(loginRequest)),
             ).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `register creates active user with hashed password and consent audit records`() {
+        val email = "  New.User@Example.Test  "
+        val normalizedEmail = "new.user@example.test"
+        val registerRequest = validRegisterRequest(email, name = "  New Reviewer  ")
+
+        val response =
+            mockMvc
+                .perform(
+                    post(REGISTER_PATH)
+                        .with(csrf())
+                        .header("X-Forwarded-For", "203.0.113.10")
+                        .header(HttpHeaders.USER_AGENT, "Registration Test Agent")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)),
+                ).andExpect(status().isCreated)
+                .andReturn()
+
+        assertNull(response.response.getHeader(HttpHeaders.SET_COOKIE))
+        assertTrue(response.response.contentAsString.isBlank())
+
+        val user =
+            jdbcTemplate.queryForMap(
+                """
+                SELECT u.id, u.status, u.password_hash, p.email, p.name
+                FROM users.users u
+                JOIN users.pii p ON p.user_id = u.id
+                WHERE p.email = ?
+                """.trimIndent(),
+                normalizedEmail,
+            )
+        val userId = user["id"] as UUID
+        val passwordHash = user["password_hash"] as String
+
+        assertEquals("ACTIVE", user["status"])
+        assertEquals("New Reviewer", user["name"])
+        assertEquals(normalizedEmail, user["email"])
+        assertTrue(passwordEncoder.matches(REGISTRATION_PASSWORD, passwordHash))
+
+        val consentTypes =
+            jdbcTemplate.queryForList(
+                "SELECT type FROM users.consents WHERE user_id = ? ORDER BY type",
+                String::class.java,
+                userId,
+            )
+        assertEquals(listOf("PRIVACY_POLICY", "TERMS_OF_SERVICE"), consentTypes)
+
+        val session =
+            jdbcTemplate.queryForMap(
+                """
+                SELECT s.ip, s.user_agent
+                FROM users.sessions s
+                JOIN users.consents c ON c.session = s.id
+                WHERE c.user_id = ?
+                LIMIT 1
+                """.trimIndent(),
+                userId,
+            )
+        assertEquals("203.0.113.10", session["ip"])
+        assertEquals("Registration Test Agent", session["user_agent"])
+    }
+
+    @Test
+    fun `register rejects duplicate normalized email`() {
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validRegisterRequest("duplicate@example.test"))),
+            ).andExpect(status().isCreated)
+
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validRegisterRequest(" DUPLICATE@example.test "))),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `registered active user can login immediately`() {
+        val email = "active-login@example.test"
+
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validRegisterRequest(email))),
+            ).andExpect(status().isCreated)
+
+        mockMvc
+            .perform(
+                post(LOGIN_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(LoginRequestDto(email, REGISTRATION_PASSWORD))),
+            ).andExpect(status().isOk)
+    }
+
+    @Test
+    fun `register rejects invalid input`() {
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        objectMapper.writeValueAsString(
+                            validRegisterRequest("invalid-email").copy(password = "short"),
+                        ),
+                    ),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `register requires display name`() {
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        objectMapper.writeValueAsString(
+                            validRegisterRequest("missing-name@example.test").copy(name = "   "),
+                        ),
+                    ),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `register requires consent acceptance`() {
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        objectMapper.writeValueAsString(
+                            validRegisterRequest("missing-consent@example.test").copy(termsOfServiceAccepted = false),
+                        ),
+                    ),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `register requires CSRF`() {
+        mockMvc
+            .perform(
+                post(REGISTER_PATH)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validRegisterRequest("csrf@example.test"))),
+            ).andExpect(status().isForbidden)
     }
 
     @Test
@@ -204,6 +382,13 @@ class AuthIntegrationTest {
                 .andReturn()
 
         val firstRefreshToken = extractRefreshToken(loginResponse.response.getHeader(HttpHeaders.SET_COOKIE)!!)
+        val staleLastSeenAt = Instant.parse("2024-01-01T00:00:00Z")
+        jdbcTemplate.update(
+            "UPDATE users.users SET last_seen_at = ? WHERE id = ?",
+            Timestamp.from(staleLastSeenAt),
+            userId,
+        )
+        val beforeRefresh = Instant.now()
 
         // 2. First refresh
         val firstRefreshResponse =
@@ -217,6 +402,14 @@ class AuthIntegrationTest {
 
         val secondRefreshToken = extractRefreshToken(firstRefreshResponse.response.getHeader(HttpHeaders.SET_COOKIE)!!)
         assertTrue(firstRefreshToken != secondRefreshToken)
+        val refreshedLastSeenAt =
+            jdbcTemplate.queryForObject(
+                "SELECT last_seen_at FROM users.users WHERE id = ?",
+                Instant::class.java,
+                userId,
+            )
+        assertTrue(refreshedLastSeenAt != null, "last_seen_at should be set after refresh")
+        assertTrue(!refreshedLastSeenAt!!.isBefore(beforeRefresh), "last_seen_at should be updated after refresh")
 
         // 3. Second refresh with a NEW token works
         mockMvc
@@ -284,4 +477,15 @@ class AuthIntegrationTest {
         assertTrue(setCookieHeader.contains("HttpOnly"))
         assertTrue(setCookieHeader.contains("Path=/api/auth"))
     }
+
+    private fun validRegisterRequest(
+        email: String,
+        name: String = "User ${email.substringBefore("@").take(40)}",
+    ) = RegisterRequestDto(
+        name = name,
+        email = email,
+        password = REGISTRATION_PASSWORD,
+        privacyPolicyAccepted = true,
+        termsOfServiceAccepted = true,
+    )
 }

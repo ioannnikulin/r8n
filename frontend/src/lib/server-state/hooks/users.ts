@@ -10,7 +10,12 @@ import {
   useAuthorizedQuery,
 } from "@/lib/server-state/hooks/authorized";
 import { usersApi } from "@/lib/api/users";
-import type { UploadMyAvatarRequestDto } from "@/lib/api/users";
+import type {
+  UpdateMyPublicProfileRequestDto,
+  UploadMyAvatarRequestDto,
+  UserProfileDto,
+  UserWithRolesDto,
+} from "@/lib/api/users";
 import { usersKeys } from "@/lib/server-state/query-keys";
 import type { ApiErrorMeta } from "@/lib/server-state/query-client";
 import type { Uuid } from "@/lib/api/shared";
@@ -22,11 +27,18 @@ export function useMe() {
   });
 }
 
-export function useUserProfile(id: Uuid) {
+export function useUserProfile(
+  id: Uuid,
+  options?: Omit<
+    UseQueryOptions<UserProfileDto, Error, UserProfileDto, QueryKey>,
+    "queryKey" | "queryFn"
+  >,
+) {
   return useAuthorizedQuery({
     queryKey: usersKeys.detail(id),
     queryFn: () => usersApi.getUser(id),
     enabled: !!id,
+    ...options,
   });
 }
 
@@ -52,6 +64,30 @@ export function useUserAvatar(
     },
     enabled: !!id,
     ...options,
+  });
+}
+
+export function useUpdateMyPublicProfileMutation(
+  options?: UseMutationOptions<
+    UserProfileDto,
+    Error,
+    UpdateMyPublicProfileRequestDto,
+    unknown
+  >,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (variables) => usersApi.updateMyPublicProfile(variables),
+    ...options,
+    meta: {
+      errorTitle: "Profile update failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.all);
+      options?.onSuccess?.(data, variables, context);
+    },
   });
 }
 
@@ -88,6 +124,139 @@ export function useDeleteMyAvatarMutation(
     } as ApiErrorMeta,
     onSuccess: (data, variables, context) => {
       invalidate(usersKeys.all);
+      options?.onSuccess?.(data, variables, context);
+    },
+  });
+}
+
+export function useUsersWithRoles(
+  options?: Omit<
+    UseQueryOptions<UserWithRolesDto[], Error, UserWithRolesDto[], QueryKey>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useAuthorizedQuery({
+    queryKey: usersKeys.withRoles(),
+    queryFn: () => usersApi.listUsersWithRoles(),
+    ...options,
+  });
+}
+
+export function useAssignModeratorMutation(
+  options?: UseMutationOptions<void, Error, Uuid, unknown>,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (userId) => usersApi.assignModerator(userId),
+    ...options,
+    meta: {
+      errorTitle: "Role assignment failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.withRoles());
+      invalidate(usersKeys.me());
+      options?.onSuccess?.(data, variables, context);
+    },
+  });
+}
+
+export function useRevokeModeratorMutation(
+  options?: UseMutationOptions<void, Error, Uuid, unknown>,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (userId) => usersApi.revokeModerator(userId),
+    ...options,
+    meta: {
+      errorTitle: "Role revocation failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.withRoles());
+      invalidate(usersKeys.me());
+      options?.onSuccess?.(data, variables, context);
+    },
+  });
+}
+
+export function useAssignSupportMutation(
+  options?: UseMutationOptions<void, Error, Uuid, unknown>,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (userId) => usersApi.assignSupport(userId),
+    ...options,
+    meta: {
+      errorTitle: "Role assignment failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.withRoles());
+      invalidate(usersKeys.me());
+      options?.onSuccess?.(data, variables, context);
+    },
+  });
+}
+
+export function useRevokeSupportMutation(
+  options?: UseMutationOptions<void, Error, Uuid, unknown>,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (userId) => usersApi.revokeSupport(userId),
+    ...options,
+    meta: {
+      errorTitle: "Role revocation failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.withRoles());
+      invalidate(usersKeys.me());
+      options?.onSuccess?.(data, variables, context);
+    },
+  });
+}
+
+export function useAssignAdminMutation(
+  options?: UseMutationOptions<void, Error, Uuid, unknown>,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (userId) => usersApi.assignAdmin(userId),
+    ...options,
+    meta: {
+      errorTitle: "Role assignment failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.withRoles());
+      invalidate(usersKeys.me());
+      options?.onSuccess?.(data, variables, context);
+    },
+  });
+}
+
+export function useRevokeAdminMutation(
+  options?: UseMutationOptions<void, Error, Uuid, unknown>,
+) {
+  const invalidate = useApiInvalidation();
+
+  return useAuthorizedMutation({
+    mutationFn: (userId) => usersApi.revokeAdmin(userId),
+    ...options,
+    meta: {
+      errorTitle: "Role revocation failed",
+      ...options?.meta,
+    } as ApiErrorMeta,
+    onSuccess: (data, variables, context) => {
+      invalidate(usersKeys.withRoles());
+      invalidate(usersKeys.me());
       options?.onSuccess?.(data, variables, context);
     },
   });

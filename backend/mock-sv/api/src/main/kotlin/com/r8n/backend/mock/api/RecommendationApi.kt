@@ -4,6 +4,7 @@ import com.r8n.backend.core.api.PageRequestDto
 import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.lists.dto.OpinionListSummaryDto
 import com.r8n.backend.opinions.api.opinions.dto.OpinionSubjectDto
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -25,12 +26,14 @@ interface RecommendationApi {
     @GetMapping(SUBJECTS_PATH)
     fun getRecommendedSubjects(
         @PathVariable lookingAtSubjectId: UUID,
+        @Valid
         pageable: PageRequestDto,
     ): PageResponseDto<OpinionSubjectDto>
 
     @GetMapping(OPINION_LISTS_PATH)
     fun getRecommendedOpinionLists(
         @PathVariable lookingAtListId: UUID,
+        @Valid
         pageable: PageRequestDto,
     ): PageResponseDto<OpinionListSummaryDto>
 
@@ -45,10 +48,16 @@ interface RecommendationApi {
     )
 
     @GetMapping(HIDDEN_SUBJECTS_PATH)
-    fun getHiddenSubjects(pageable: PageRequestDto): PageResponseDto<OpinionSubjectDto>
+    fun getHiddenSubjects(
+        @Valid
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionSubjectDto>
 
     @GetMapping(HIDDEN_LISTS_PATH)
-    fun getHiddenOpinionLists(pageable: PageRequestDto): PageResponseDto<OpinionListSummaryDto>
+    fun getHiddenOpinionLists(
+        @Valid
+        pageable: PageRequestDto,
+    ): PageResponseDto<OpinionListSummaryDto>
 
     @PatchMapping(UNHIDE_SUBJECT_PATH)
     fun unhideSubject(

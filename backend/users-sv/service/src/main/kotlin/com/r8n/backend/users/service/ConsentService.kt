@@ -13,7 +13,7 @@ class ConsentService(
     fun getConsentsForUser(userId: UUID): List<Consent> =
         consentRepository.findAllByUserId(userId).map {
             Consent(
-                id = it.id,
+                id = it.id!!,
                 type = it.type,
                 accepted = it.accepted,
                 session = sessionService.getSession(it.session, userId),

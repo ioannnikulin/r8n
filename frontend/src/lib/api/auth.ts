@@ -6,6 +6,14 @@ export interface LoginRequestDto {
   password: string;
 }
 
+export interface RegisterRequestDto {
+  name: string;
+  email: string;
+  password: string;
+  privacyPolicyAccepted: boolean;
+  termsOfServiceAccepted: boolean;
+}
+
 export interface AuthenticationTokenDto {
   accessToken: string;
   expiresInMilliseconds: number;
@@ -37,6 +45,15 @@ export function createAuthApi(client: HttpClient = httpClient) {
       await ensureCsrfToken();
 
       return client.post<AuthenticationTokenDto, LoginRequestDto>("/auth/login", {
+        body: request,
+        credentials: "include",
+      });
+    },
+
+    async register(request: RegisterRequestDto): Promise<void> {
+      await ensureCsrfToken();
+
+      return client.post<void, RegisterRequestDto>("/auth/register", {
         body: request,
         credentials: "include",
       });

@@ -5,4 +5,5 @@ import java.util.UUID
 data class Username(
     val id: UUID,
     val name: String,
+    val roles: List<String>,
 )

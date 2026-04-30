@@ -25,7 +25,8 @@ test("mobile bottom navigation stays clean across primary routes", async ({ page
   await expect(page).toHaveURL(/\/profile$/);
 
   await page.getByRole("link", { name: "Feed" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  // The "/" route redirects to /lists for authenticated users.
+  await expect(page).toHaveURL(/\/lists$/);
 
   await waitForUiToSettle(page);
 });
@@ -37,7 +38,7 @@ test("mobile create review form renders and accepts input without console issues
   await expect(page).toHaveURL(/\/create$/);
 
   await page.getByLabel("What are you reviewing?").fill("Cappuccino");
-  await page.getByRole("button", { name: "7" }).click();
+  await page.getByRole("spinbutton").fill("7");
   await page.getByLabel("Objective Notes").fill(
     "Medium body, balanced acidity, and stable milk foam."
   );
@@ -69,7 +70,7 @@ test("mobile create list flow stays clean when started from bottom navigation", 
 test("mobile discover page renders search and lists section without console issues", async ({ page }) => {
   await page.goto("/discover");
 
-  await expect(page.getByPlaceholder("Search lists by name...")).toBeVisible();
+  await expect(page.getByPlaceholder("Search everything...")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible();
 
   await waitForUiToSettle(page);

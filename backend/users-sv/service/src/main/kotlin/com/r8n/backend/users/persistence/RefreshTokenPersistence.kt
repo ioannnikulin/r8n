@@ -14,8 +14,8 @@ import java.util.UUID
 class RefreshTokenPersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
-    val id: UUID? = null,
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    var id: UUID? = null,
 //
     @Column(nullable = false)
     val tokenId: UUID,

@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +11,13 @@ let createQueryClient: typeof import("@/lib/server-state/query-client")["createQ
 let clearAuthSession: typeof import("@/lib/server-state/auth-store")["clearAuthSession"];
 let setAuthSession: typeof import("@/lib/server-state/auth-store")["setAuthSession"];
 let fetchMock: ReturnType<typeof vi.fn>;
+
+function createJsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  });
+}
 
 describe("UserAvatar", () => {
   beforeEach(async () => {
@@ -83,6 +90,49 @@ describe("UserAvatar", () => {
     const headers = new Headers(requestInit.headers);
     expect(headers.get("Authorization")).toBe(`Bearer ${ACCESS_TOKEN}`);
     expect(headers.get("Accept")).toBe("image/*");
+  });
+
+  it("loads and shows last seen information when hovering the avatar", async () => {
+    const lastSeenAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    fetchMock
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          id: USER_ID,
+          name: "Jane Doe",
+          status: "ACTIVE",
+          lastSeenAt,
+          about: null,
+          location: null,
+        }),
+      );
+
+    renderWithClient(<UserAvatar userId={USER_ID} name="Jane Doe" />);
+
+    const trigger = await screen.findByRole("button", { name: "Jane Doe presence" });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.mouseEnter(trigger);
+
+    expect(await screen.findByText("Last seen 2 hours ago")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `/api/users/${USER_ID}`,
+        expect.objectContaining({ method: "GET" }),
+      );
+    });
+  });
+
+  it("shows provided last seen information without a user id", async () => {
+    const lastSeenAt = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+    renderWithClient(<UserAvatar name="Alex Krüger" lastSeenAt={lastSeenAt} />);
+
+    const trigger = screen.getByRole("button", { name: "Alex Krüger presence" });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.mouseEnter(trigger);
+
+    expect(await screen.findByText("Last seen 15 minutes ago")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

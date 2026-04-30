@@ -69,6 +69,28 @@ services:
       - ./deployment/certs:/certs:ro
       - ./deployment/certs/internal:/certs:ro
 
+  messaging:
+    build:
+      context: ./deployment/messaging
+      dockerfile: Dockerfile
+    env_file:
+      - ./deployment/config/docker.env
+      - ./deployment/secrets/docker.secrets.env
+    environment:
+      <<: [*tls-common-env, *tls-client-common-env]
+      SERVICE_NAME: messaging
+      SERVER_SSL_KEY_STORE: /certs/keystore-messaging.p12
+      SERVICES_MESSAGING_PORT: ${SERVICES_MESSAGING_PORT:?}
+      LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:?}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+    networks:
+      - r8n_net
+    volumes:
+      - ./deployment/messaging/logs:/var/log/r8n
+      - ./deployment/certs/internal:/certs:ro
+    depends_on:
+      - database
+
   users:
     build:
       context: ./deployment/users
@@ -91,7 +113,6 @@ services:
       - ./deployment/certs/internal:/certs:ro
     depends_on:
       - database
-      - mock
 
   export:
     build:
@@ -121,6 +142,7 @@ services:
       - database
       - users
       - mock
+      - messaging
       - opinions
 
   gateway:
@@ -141,6 +163,8 @@ services:
       SERVICES_OPINIONS_PORT: ${SERVICES_OPINIONS_PORT:?}
       SERVICES_MOCK_HOST: ${SERVICES_MOCK_HOST:?}
       SERVICES_MOCK_PORT: ${SERVICES_MOCK_PORT:?}
+      SERVICES_MESSAGING_HOST: ${SERVICES_MESSAGING_HOST:?}
+      SERVICES_MESSAGING_PORT: ${SERVICES_MESSAGING_PORT:?}
       SERVICES_USERS_HOST: ${SERVICES_USERS_HOST:?}
       SERVICES_USERS_PORT: ${SERVICES_USERS_PORT:?}
       SERVICES_EXPORT_HOST: ${SERVICES_EXPORT_HOST:?}
@@ -151,6 +175,7 @@ services:
     depends_on:
       - opinions
       - mock
+      - messaging
       - users
       - export
       - database

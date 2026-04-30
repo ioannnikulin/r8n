@@ -8,28 +8,127 @@ server:
 
 
 spring:
+
   cloud:
     gateway:
       server:
         webflux:
           routes:
+            - id: block_internal
+              uri: no-forward://internal
+              predicates:
+                - Path=/api/internal/**
+              filters:
+                - SetStatus=403
             - id: auth
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
               predicates:
                 - Path=/api/auth/**
+            - id: opinions_v3_api_docs
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
+              predicates:
+                - Path=/api/opinions/v3/api-docs/**
+              filters:
+                - RewritePath=/api/opinions/v3/api-docs(?<segment>.*), /v3/api-docs$\{segment}
             - id: opinions
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
               predicates:
-                - Path=/api/access-requests/**,/api/opinion-lists/**,/api/opinions/**
+                - Path=/api/access-requests/**,/api/opinion-lists/**,/api/opinions/**,/api/subjects/**,/api/referents/**
+            - id: users_v3_api_docs
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
+              predicates:
+                - Path=/api/users/v3/api-docs/**
+              filters:
+                - RewritePath=/api/users/v3/api-docs(?<segment>.*), /v3/api-docs$\{segment}
             - id: users
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
               predicates:
                 - Path=/api/users/**
+            - id: export_v3_api_docs
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_EXPORT_HOST}:${SERVICES_EXPORT_PORT}
+              predicates:
+                - Path=/api/export/v3/api-docs/**
+              filters:
+                - RewritePath=/api/export/v3/api-docs(?<segment>.*), /v3/api-docs$\{segment}
             - id: export
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_EXPORT_HOST}:${SERVICES_EXPORT_PORT}
               predicates:
                 - Path=/api/export/**
+            - id: messaging_v3_api_docs
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MESSAGING_HOST}:${SERVICES_MESSAGING_PORT}
+              predicates:
+                - Path=/api/messaging/v3/api-docs/**
+              filters:
+                - RewritePath=/api/messaging/v3/api-docs(?<segment>.*), /v3/api-docs$\{segment}
+            - id: messaging
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MESSAGING_HOST}:${SERVICES_MESSAGING_PORT}
+              predicates:
+                - Path=/api/messaging/**
             - id: mock
               uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
               predicates:
                 - Path=/api/selectors/**
+            - id: public_opinions
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
+              predicates:
+                - Path=/api/public/opinions/**
+              filters:
+                - ApiKeyAuthenticationFilter
+                - name: RateLimitingFilter
+                  args:
+                    limit: 100
+                    durationSeconds: 60
+                - RewritePath=/api/public/opinions/(?<segment>.*), /api/opinions/$\{segment}
+            - id: public_subjects
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
+              predicates:
+                - Path=/api/public/subjects,/api/public/subjects/**
+              filters:
+                - ApiKeyAuthenticationFilter
+                - name: RateLimitingFilter
+                  args:
+                    limit: 100
+                    durationSeconds: 60
+                - RewritePath=/api/public/subjects/?(?<segment>.*), /api/subjects/$\{segment}
+            - id: public_users
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
+              predicates:
+                - Path=/api/public/users/**
+              filters:
+                - ApiKeyAuthenticationFilter
+                - name: RateLimitingFilter
+                  args:
+                    limit: 100
+                    durationSeconds: 60
+                - RewritePath=/api/public/users/(?<segment>.*), /api/users/$\{segment}
+            - id: public_messaging
+              uri: ${INTERSERVICE_PROTOCOL}://${SERVICES_MESSAGING_HOST}:${SERVICES_MESSAGING_PORT}
+              predicates:
+                - Path=/api/public/messaging/**
+              filters:
+                - ApiKeyAuthenticationFilter
+                - name: RateLimitingFilter
+                  args:
+                    limit: 100
+                    durationSeconds: 60
+                - RewritePath=/api/public/messaging/(?<segment>.*), /api/messaging/$\{segment}
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Opinions Service
+        url: /api/opinions/v3/api-docs
+      - name: Users Service
+        url: /api/users/v3/api-docs
+      - name: Export Service
+        url: /api/export/v3/api-docs
+      - name: Messaging Service
+        url: /api/messaging/v3/api-docs
+r8n:
+  security:
+    public-paths: /api/auth/**, /swagger-ui.html, /swagger-ui/**, /v3/api-docs/**, /api/*/v3/api-docs/**, /webjars/swagger-ui/**, /api/opinions/v3/api-docs/**, /api/users/v3/api-docs/**, /api/export/v3/api-docs/**, /api/messaging/v3/api-docs/**
+    jwt:
+      private-key: ${JWT_PRIVATE_KEY}
+      public-key: ${JWT_PUBLIC_KEY}

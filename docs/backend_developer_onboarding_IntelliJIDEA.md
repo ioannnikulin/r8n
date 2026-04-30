@@ -79,8 +79,8 @@ Build and dependency management system for backend. Runs every time you build ba
   - `make docker-logs`
   - or per service: `make docker-logs-gateway`, `make docker-logs-opinions`, `make docker-logs-mock`
 - test HTTPS routed requests through gateway:
-  - `make https-routed-request-opinion`
-  - `make https-routed-request-mock`
+  - `make routed-request-opinion ENV=docker`
+  - `make routed-request-mock END=docker`
 - stop Docker services (required!):
   - `make docker-down`
 

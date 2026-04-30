@@ -1,18 +1,26 @@
 server:
   port: ${SERVICES_EXPORT_PORT}
 
+
+
+
+
+
 spring:
   application.name: export-sv
-
+springdoc:
+  packages-to-scan: com.r8n.backend.export.controller
 services:
   users:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
   opinions:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_OPINIONS_HOST}:${SERVICES_OPINIONS_PORT}
+  messaging:
+    url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MESSAGING_HOST}:${SERVICES_MESSAGING_PORT}
   mock:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_MOCK_HOST}:${SERVICES_MOCK_PORT}
-
 r8n:
   security:
+    public-paths: /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
     jwt:
       public-key: ${JWT_PUBLIC_KEY}

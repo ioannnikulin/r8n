@@ -134,6 +134,9 @@ class AccessService(
         return null
     }
 
+    fun countAcceptedForList(listId: UUID): Int =
+        repository.countByListAndStatus(listId, RequestStatusEnum.ACCEPTED).toInt()
+
     fun canAccessOpinionList(
         userId: UUID,
         listId: UUID,

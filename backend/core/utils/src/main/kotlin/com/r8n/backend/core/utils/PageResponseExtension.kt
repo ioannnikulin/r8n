@@ -19,5 +19,9 @@ fun PageRequestDto.toPageable(): Pageable =
     PageRequest.of(
         page,
         size,
-        Sort.by(sort.map { Sort.Order(Sort.Direction.valueOf(it.direction.name), it.property) }),
+        if (sort.isEmpty()) {
+            Sort.unsorted()
+        } else {
+            Sort.by(sort.map { Sort.Order(Sort.Direction.valueOf(it.direction.name), it.property) })
+        },
     )

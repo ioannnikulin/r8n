@@ -8,5 +8,6 @@ data class UserSession(
     val created: Instant,
     val expires: Instant,
     val ip: String,
+    val os: String,
     val userAgent: String,
 )

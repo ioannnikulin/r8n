@@ -13,7 +13,7 @@ import java.util.UUID
 class OpinionSubjectPersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     var id: UUID? = null,
 //
     @Column(nullable = false)

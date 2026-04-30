@@ -28,13 +28,14 @@ frontend_npx() { if command -v nvm >/dev/null 2>&1; then nvm exec $(FRONTEND_NOD
     prebuild-jars prepare-artifacts verify-artifacts docker-build docker-up \
     docker-certs docker-certs-force internal-certs internal-certs-force internal-certs-clean docker-certs-clean docker-secrets-clean docker-secrets-init edge-certs edge-certs-force \
     docker-down docker-logs clean-artifacts ensure-log-dirs clean-logs \
-    get-token refresh-token logout routed-request-opinion routed-request-opinion-forbidden routed-request-opinion-mine routed-request-opinion-approved routed-request-mock routed-request-user-profile routed-request-gdpr direct-request-opinion direct-request-mock \
-    https-routed-request-opinion https-routed-request-mock https-routed-request-gdpr \
+    get-token refresh-token logout routed-request-opinion routed-request-mock routed-request-user-profile routed-request-gdpr routed-request-messaging-threads direct-request-opinion direct-request-mock \
+    direct-request-swagger public-request-user routed-request-opinion-approved routed-request-opinion-forbidden routed-request-opinion-mine \
+    routed-request-moderation-approve-flow routed-request-moderation-reject-flow routed-request-moderation-decisions \
     docker-database-create-data-folder docker-database-drop-volume-personal docker-database-drop-volume-campus docker-database-run docker-database-connect \
     build-opinions who-ate-all-the-space clean-the-fuck-out-of-this-campus-machine \
     frontend-install frontend-install-all frontend-check-node frontend-dev frontend-build frontend-lint \
-    frontend-test frontend-test-unit frontend-test-e2e frontend-test-e2e-ui frontend-test-e2e-ui-chromium frontend-test-e2e-ui-firefox frontend-test-e2e-ui-webkit frontend-test-e2e-ui-cross-browser frontend-test-e2e-api frontend-clean frontend-clean-all frontend-cert frontend-cert-clean \
-    lint-backend test-backend test-frontend-prepare test-frontend test-e2e \
+    frontend-test frontend-test-unit frontend-test-e2e frontend-test-e2e-ui frontend-test-e2e-api frontend-clean frontend-clean-all frontend-cert frontend-cert-clean \
+    lint-backend test-backend test-frontend-prepare test-frontend test-e2e routed-request-opinion-list \
     test-github-backend test-github-frontend test-github-e2e test-github \
     clean fclean re move-caches-to-goinfre gradle-%-bootJar check-makefile
 
@@ -210,12 +211,13 @@ $(addprefix local-stop-,$(SERVICES)): local-stop-%: ## Stop one local backend se
 	fi; \
 	$(LOAD_LOCAL_ENV) \
 	port=""; \
-	case "$*" in \
-		gateway) port="$$GATEWAY_PORT" ;; \
-		opinions) port="$$SERVICES_OPINIONS_PORT" ;; \
-		mock) port="$$SERVICES_MOCK_PORT" ;; \
-		users) port="$$SERVICES_USERS_PORT" ;; \
-	esac; \
+	if [ "$*" = "gateway" ]; then \
+		port="$$GATEWAY_PORT"; \
+	else \
+		service_key=$$(printf "%s" "$*" | tr "[:lower:]-" "[:upper:]_"); \
+		port_var="SERVICES_$${service_key}_PORT"; \
+		eval "port=\$${$$port_var:-}"; \
+	fi; \
 	if [ -n "$$port" ] && command -v lsof >/dev/null 2>&1; then \
 		pids="$$(lsof -ti tcp:$$port 2>/dev/null || true)"; \
 		[ -z "$$pids" ] || kill $$pids 2>/dev/null || true; \
@@ -245,7 +247,7 @@ get-token: ## Obtain a JWT token and refresh cookie (ENV=local|docker, default: 
 	curl_args="-s"; \
 	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
 	echo "Fetching CSRF token..."; \
-	csrf_headers=$$(curl $$curl_args -c .cookies -i -X POST "$$protocol://$$host:$$port/api/auth/login" | tr -d '\r'); \
+	csrf_headers=$$(curl $$curl_args -c .cookies -i -X GET "$$protocol://$$host:$$port/api/auth/csrf" | tr -d '\r'); \
 	csrf_token=$$(echo "$$csrf_headers" | grep -i "Set-Cookie: XSRF-TOKEN=" | sed 's/.*XSRF-TOKEN=\([^;]*\).*/\1/'); \
 	if [ -z "$$csrf_token" ]; then \
 		echo "Failed to obtain CSRF token. Headers:"; \
@@ -313,6 +315,165 @@ logout: ## Logout and clear cookies (ENV=local|docker)
 		-H "X-XSRF-TOKEN: $$csrf_token" -i; \
 	rm -f .access_token .cookies; \
 	echo "Logged out and local session files removed."
+
+# Temporary reviewer helpers for issue #93. Remove once subject/opinion creation and moderation
+# can be verified fully through the normal frontend flow.
+routed-request-moderation-approve-flow: ## Temporary full moderation approve smoke flow (ENV=local|docker)
+	@if [ "$(ENV)" = "docker" ]; then \
+		$(LOAD_DOCKER_ENV) \
+		protocol=https; host=localhost; port=8080; \
+	else \
+		$(LOAD_LOCAL_ENV) \
+		protocol=$${INTERSERVICE_PROTOCOL:-http}; host=$${GATEWAY_HOST:-localhost}; port=$${GATEWAY_PORT:-8080}; \
+	fi; \
+	set -e; \
+	curl_args="-s"; \
+	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
+	api="$$protocol://$$host:$$port"; \
+	login() { \
+		email="$$1"; \
+		cookie_file="$$(mktemp)"; \
+		csrf_headers=$$(curl $$curl_args -c "$$cookie_file" -i "$$api/api/auth/csrf" | tr -d '\r'); \
+		csrf_token=$$(printf "%s" "$$csrf_headers" | sed -n 's/.*XSRF-TOKEN=\([^;]*\).*/\1/p' | head -n1); \
+		token=$$(curl $$curl_args -b "$$cookie_file" -c "$$cookie_file" -X POST "$$api/api/auth/login" \
+			-H "Content-Type: application/json" \
+			-H "X-XSRF-TOKEN: $$csrf_token" \
+			-d "{\"login\":\"$$email\",\"password\":\"1234\"}" \
+			| sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'); \
+		rm -f "$$cookie_file"; \
+		printf "%s" "$$token"; \
+	}; \
+	json_id() { sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -n1; }; \
+	owner_token=$$(login anna@r8n.test); \
+	moderator_token=$$(login lena@r8n.test); \
+	if [ -z "$$owner_token" ] || [ -z "$$moderator_token" ]; then echo "Failed to log in seeded owner/moderator users"; exit 1; fi; \
+	echo "Creating subject..."; \
+	subject_json=$$(curl $$curl_args -X POST "$$api/api/subjects" \
+		-H "Authorization: Bearer $$owner_token" \
+		-H "Content-Type: application/json" \
+		-d '{"name":"Moderation Approve Cafe","referentName":"Moderation Approve Cafe Berlin","address":"Teststrasse 1, Berlin","latitude":52.52,"longitude":13.405}'); \
+	subject_id=$$(printf "%s" "$$subject_json" | json_id); \
+	echo "$$subject_json"; \
+	if [ -z "$$subject_id" ]; then echo "Subject creation failed"; exit 1; fi; \
+	echo "Creating draft opinion..."; \
+	opinion_json=$$(curl $$curl_args -X POST "$$api/api/opinions" \
+		-H "Authorization: Bearer $$owner_token" \
+		--data-urlencode "subjectId=$$subject_id" \
+		--data-urlencode "mark=4.5" \
+		--data-urlencode "subjective=Good coffee, calm room" \
+		--data-urlencode "objective=Paid 4.20 EUR for espresso"); \
+	opinion_id=$$(printf "%s" "$$opinion_json" | json_id); \
+	echo "$$opinion_json"; \
+	if [ -z "$$opinion_id" ]; then echo "Opinion creation failed"; exit 1; fi; \
+	echo "Submitting opinion for moderation..."; \
+	submit_json=$$(curl $$curl_args -X POST "$$api/api/opinions/$$opinion_id/submit-for-moderation" -H "Authorization: Bearer $$owner_token"); \
+	echo "$$submit_json"; \
+	printf "%s" "$$submit_json" | grep -q '"status":"PENDING_PREMODERATION"'; \
+	echo "Checking moderator queue contains the opinion..."; \
+	queue_json=$$(curl $$curl_args "$$api/api/opinions/moderation?page=0&size=20" -H "Authorization: Bearer $$moderator_token"); \
+	echo "$$queue_json"; \
+	printf "%s" "$$queue_json" | grep -q "$$opinion_id"; \
+	echo "Approving opinion..."; \
+	approve_json=$$(curl $$curl_args -X POST "$$api/api/opinions/$$opinion_id/approve" -H "Authorization: Bearer $$moderator_token"); \
+	echo "$$approve_json"; \
+	printf "%s" "$$approve_json" | grep -q '"status":"PUBLISHED"'; \
+	echo "Checking persisted moderation decision..."; \
+	decisions_json=$$(curl $$curl_args "$$api/api/opinions/moderation/decisions?page=0&size=20" -H "Authorization: Bearer $$moderator_token"); \
+	echo "$$decisions_json"; \
+	printf "%s" "$$decisions_json" | grep -q "$$opinion_id"; \
+	printf "%s" "$$decisions_json" | grep -q '"action":"APPROVED"'; \
+	echo "Approve moderation flow passed."
+
+routed-request-moderation-reject-flow: ## Temporary full moderation reject smoke flow (ENV=local|docker)
+	@if [ "$(ENV)" = "docker" ]; then \
+		$(LOAD_DOCKER_ENV) \
+		protocol=https; host=localhost; port=8080; \
+	else \
+		$(LOAD_LOCAL_ENV) \
+		protocol=$${INTERSERVICE_PROTOCOL:-http}; host=$${GATEWAY_HOST:-localhost}; port=$${GATEWAY_PORT:-8080}; \
+	fi; \
+	set -e; \
+	curl_args="-s"; \
+	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
+	api="$$protocol://$$host:$$port"; \
+	login() { \
+		email="$$1"; \
+		cookie_file="$$(mktemp)"; \
+		csrf_headers=$$(curl $$curl_args -c "$$cookie_file" -i "$$api/api/auth/csrf" | tr -d '\r'); \
+		csrf_token=$$(printf "%s" "$$csrf_headers" | sed -n 's/.*XSRF-TOKEN=\([^;]*\).*/\1/p' | head -n1); \
+		token=$$(curl $$curl_args -b "$$cookie_file" -c "$$cookie_file" -X POST "$$api/api/auth/login" \
+			-H "Content-Type: application/json" \
+			-H "X-XSRF-TOKEN: $$csrf_token" \
+			-d "{\"login\":\"$$email\",\"password\":\"1234\"}" \
+			| sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'); \
+		rm -f "$$cookie_file"; \
+		printf "%s" "$$token"; \
+	}; \
+	json_id() { sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -n1; }; \
+	owner_token=$$(login anna@r8n.test); \
+	moderator_token=$$(login lena@r8n.test); \
+	if [ -z "$$owner_token" ] || [ -z "$$moderator_token" ]; then echo "Failed to log in seeded owner/moderator users"; exit 1; fi; \
+	echo "Creating subject..."; \
+	subject_json=$$(curl $$curl_args -X POST "$$api/api/subjects" \
+		-H "Authorization: Bearer $$owner_token" \
+		-H "Content-Type: application/json" \
+		-d '{"name":"Moderation Reject Cafe","referentName":"Moderation Reject Cafe Berlin","address":"Teststrasse 2, Berlin","latitude":52.51,"longitude":13.4}'); \
+	subject_id=$$(printf "%s" "$$subject_json" | json_id); \
+	echo "$$subject_json"; \
+	if [ -z "$$subject_id" ]; then echo "Subject creation failed"; exit 1; fi; \
+	echo "Creating draft opinion..."; \
+	opinion_json=$$(curl $$curl_args -X POST "$$api/api/opinions" \
+		-H "Authorization: Bearer $$owner_token" \
+		--data-urlencode "subjectId=$$subject_id" \
+		--data-urlencode "mark=2.0" \
+		--data-urlencode "subjective=Needs checking before publishing" \
+		--data-urlencode "objective=Contains a claim that should be supported"); \
+	opinion_id=$$(printf "%s" "$$opinion_json" | json_id); \
+	echo "$$opinion_json"; \
+	if [ -z "$$opinion_id" ]; then echo "Opinion creation failed"; exit 1; fi; \
+	echo "Submitting opinion for moderation..."; \
+	submit_json=$$(curl $$curl_args -X POST "$$api/api/opinions/$$opinion_id/submit-for-moderation" -H "Authorization: Bearer $$owner_token"); \
+	echo "$$submit_json"; \
+	printf "%s" "$$submit_json" | grep -q '"status":"PENDING_PREMODERATION"'; \
+	echo "Rejecting opinion..."; \
+	reject_json=$$(curl $$curl_args -X POST "$$api/api/opinions/$$opinion_id/reject" \
+		-H "Authorization: Bearer $$moderator_token" \
+		-H "Content-Type: application/json" \
+		-d '{"reason":"Please add factual support and remove unverifiable claims."}'); \
+	echo "$$reject_json"; \
+	printf "%s" "$$reject_json" | grep -q '"status":"REJECTED"'; \
+	echo "Checking persisted moderation decision..."; \
+	decisions_json=$$(curl $$curl_args "$$api/api/opinions/moderation/decisions?page=0&size=20" -H "Authorization: Bearer $$moderator_token"); \
+	echo "$$decisions_json"; \
+	printf "%s" "$$decisions_json" | grep -q "$$opinion_id"; \
+	printf "%s" "$$decisions_json" | grep -q '"action":"REJECTED"'; \
+	printf "%s" "$$decisions_json" | grep -q 'Please add factual support'; \
+	echo "Reject moderation flow passed."
+
+routed-request-moderation-decisions: ## Temporary request for persisted moderation decisions (ENV=local|docker)
+	@if [ "$(ENV)" = "docker" ]; then \
+		$(LOAD_DOCKER_ENV) \
+		protocol=https; host=localhost; port=8080; \
+	else \
+		$(LOAD_LOCAL_ENV) \
+		protocol=$${INTERSERVICE_PROTOCOL:-http}; host=$${GATEWAY_HOST:-localhost}; port=$${GATEWAY_PORT:-8080}; \
+	fi; \
+	set -e; \
+	curl_args="-s"; \
+	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
+	api="$$protocol://$$host:$$port"; \
+	cookie_file="$$(mktemp)"; \
+	csrf_headers=$$(curl $$curl_args -c "$$cookie_file" -i "$$api/api/auth/csrf" | tr -d '\r'); \
+	csrf_token=$$(printf "%s" "$$csrf_headers" | sed -n 's/.*XSRF-TOKEN=\([^;]*\).*/\1/p' | head -n1); \
+	token=$$(curl $$curl_args -b "$$cookie_file" -c "$$cookie_file" -X POST "$$api/api/auth/login" \
+		-H "Content-Type: application/json" \
+		-H "X-XSRF-TOKEN: $$csrf_token" \
+		-d '{"login":"lena@r8n.test","password":"1234"}' \
+		| sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'); \
+	rm -f "$$cookie_file"; \
+	if [ -z "$$token" ]; then echo "Failed to log in seeded moderator user"; exit 1; fi; \
+	curl $$curl_args "$$api/api/opinions/moderation/decisions?page=0&size=20" -H "Authorization: Bearer $$token"; \
+	echo
 
 routed-request-opinion-forbidden: ## failing gateway request to opinions (ENV=local|docker)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token ENV=$(ENV); fi
@@ -382,6 +543,20 @@ routed-request-mock: ## Gateway request to mock (ENV=local|docker)
 	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
 	curl $$curl_args "$$protocol://$$host:$$port/api/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -H "Authorization: Bearer $$(cat .access_token)"
 
+routed-request-messaging-threads: ## Gateway request to messaging thread summaries (ENV=local|docker)
+	@if [ ! -f .access_token ]; then $(MAKE) get-token ENV=$(ENV); fi
+	@if [ "$(ENV)" = "docker" ]; then \
+		$(LOAD_DOCKER_ENV) \
+		protocol=https; host=localhost; port=8080; \
+	else \
+		$(LOAD_LOCAL_ENV) \
+		protocol=$${INTERSERVICE_PROTOCOL:-http}; host=$${GATEWAY_HOST:-localhost}; port=$${GATEWAY_PORT:-8080}; \
+	fi; \
+	curl_args="-i"; \
+	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
+	curl $$curl_args "$$protocol://$$host:$$port/api/messaging/support/threads?page=0&size=10" \
+		-H "Authorization: Bearer $$(cat .access_token)"
+
 routed-request-user-profile: ## Gateway request to users-sv (ENV=local|docker)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token ENV=$(ENV); fi
 	@if [ "$(ENV)" = "docker" ]; then \
@@ -443,6 +618,38 @@ routed-request-gdpr: ## Gateway GDPR export request with timeout (ENV=local|dock
 		-H "Authorization: Bearer $$(cat .access_token)" | head -c 500; \
 	echo "..."
 
+routed-request-opinion-list: ## Gateway request to smoke test opinion list (ENV=local|docker)
+	@if [ ! -f .access_token ]; then $(MAKE) get-token ENV=$(ENV); fi
+	@if [ "$(ENV)" = "docker" ]; then \
+		$(LOAD_DOCKER_ENV) \
+		protocol=https; host=localhost; port=8080; \
+	else \
+		$(LOAD_LOCAL_ENV) \
+		protocol=$${INTERSERVICE_PROTOCOL:-http}; host=$${GATEWAY_HOST:-localhost}; port=$${GATEWAY_PORT:-8080}; \
+	fi; \
+	curl_args="-i"; \
+	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
+	curl $$curl_args "$$protocol://$$host:$$port/api/opinion-lists/80000000-0000-0000-0000-000000000000" \
+		-H "Authorization: Bearer $$(cat .access_token)"
+
+public-request-user: ## user-sv access through public api
+	@if [ "$(ENV)" = "docker" ]; then \
+		$(LOAD_DOCKER_ENV) \
+		protocol=https; \
+		host=localhost; \
+		port=8080; \
+	else \
+		$(LOAD_LOCAL_ENV) \
+		protocol=$${INTERSERVICE_PROTOCOL:-http}; \
+		host=$${GATEWAY_HOST:-localhost}; \
+		port=$${GATEWAY_PORT:-8080}; \
+	fi; \
+	curl_args="-i"; \
+	if [ "$$protocol" = "https" ]; then curl_args="$$curl_args -k"; fi; \
+	\
+	curl $$curl_args -X GET "$$protocol://$$host:$$port/api/public/users/00000000-0000-0000-0000-000000000000" \
+		-H "X-API-KEY: r8n_test-key_1234"
+
 direct-request-opinion: ## HTTP direct request to opinions (local)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
 	curl "http://localhost:8081/api/opinions/30000000-0000-0000-0000-000000000002" -i -H "Authorization: Bearer $$(cat .access_token)"
@@ -450,6 +657,10 @@ direct-request-opinion: ## HTTP direct request to opinions (local)
 direct-request-mock: ## HTTP direct request to mock (local)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
 	curl "http://localhost:8090/api/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer $$(cat .access_token)"
+
+direct-request-swagger: ## HTTP direct request to users swagger (local)
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	curl "http://localhost:8082/v3/api-docs" -i -H "Authorization: Bearer $$(cat .access_token)"
 
 # frontend
 frontend-check-node: ## Check Node.js version (attempts nvm if too old)
@@ -518,12 +729,11 @@ move-caches-to-goinfre: ## Move Docker and Gradle caches to /goinfre (campus mac
 	@chmod +x scripts/move-docker-to-goinfre.sh
 	./scripts/move-docker-to-goinfre.sh
 
-##@ Linters
+##@ CI check stages
 check-makefile: ## Lint Makefile formatting and conflicts
 	chmod +x utils/lint-makefile.sh
 	./utils/lint-makefile.sh
 
-##@ CI check stages
 test-github-backend: test-backend
 
 test-github-frontend: test-frontend

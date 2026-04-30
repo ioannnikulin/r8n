@@ -60,7 +60,7 @@ class UserAvatarService(
         val content =
             try {
                 avatarStorage.load(avatar.objectKey)
-            } catch (e: NoSuchFileException) {
+            } catch (_: NoSuchFileException) {
                 return null
             }
 
@@ -133,9 +133,45 @@ class UserAvatarService(
 data class UserAvatarFile(
     val content: ByteArray,
     val contentType: String,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UserAvatarFile
+
+        if (!content.contentEquals(other.content)) return false
+        if (contentType != other.contentType) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = content.contentHashCode()
+        result = 31 * result + contentType.hashCode()
+        return result
+    }
+}
 
 private data class ValidatedAvatarFile(
     val content: ByteArray,
     val contentType: AvatarContentTypePersistence,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ValidatedAvatarFile
+
+        if (!content.contentEquals(other.content)) return false
+        if (contentType != other.contentType) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = content.contentHashCode()
+        result = 31 * result + contentType.hashCode()
+        return result
+    }
+}

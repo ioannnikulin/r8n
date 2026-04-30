@@ -10,6 +10,7 @@ server:
     key-alias: ${SERVER_SSL_KEY_ALIAS}
 r8n:
   security:
+    public-paths: /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
     jwt:
       private-key: ${JWT_PRIVATE_KEY}
       public-key: ${JWT_PUBLIC_KEY}

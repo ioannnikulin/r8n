@@ -14,8 +14,8 @@ import java.util.UUID
 class ConsentPersistence(
     @Id
     @GeneratedValue
-    @UuidGenerator
-    val id: UUID,
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    var id: UUID? = null,
 //
     @Column(nullable = false)
     val userId: UUID,

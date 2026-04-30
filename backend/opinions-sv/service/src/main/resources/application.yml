@@ -1,10 +1,10 @@
 server:
   port: ${SERVICES_OPINIONS_PORT}
   ssl:
-    enabled: ${SERVER_SSL_ENABLED:false}
+    enabled: ${SERVER_SSL_ENABLED}
     key-store: ${SERVER_SSL_KEY_STORE}
     key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD}
-    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE:PKCS12}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE}
     key-alias: ${SERVER_SSL_KEY_ALIAS}
 spring:
   application.name: opinions-sv
@@ -25,10 +25,13 @@ spring:
   sql:
     init:
       mode: never
+springdoc:
+  packages-to-scan: com.r8n.backend.opinions.opinions.controller, com.r8n.backend.opinions.lists.controller, com.r8n.backend.opinions.access.controller, com.r8n.backend.opinions.api
 services:
   users:
     url: ${INTERSERVICE_PROTOCOL}://${SERVICES_USERS_HOST}:${SERVICES_USERS_PORT}
 r8n:
   security:
+    public-paths: /v3/api-docs/**, /swagger-ui.html, /swagger-ui/**, /webjars/swagger-ui/**
     jwt:
       public-key: ${JWT_PUBLIC_KEY}

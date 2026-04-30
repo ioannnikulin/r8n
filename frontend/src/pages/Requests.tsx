@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<RequestStatusEnumDto, { label: string; icon: React.R
 
 const Requests = () => {
   const [showHidden, setShowHidden] = useState(false);
+  const [showApproved, setShowApproved] = useState(false);
 
   const incoming = useIncomingAccessRequests({
     filters: { status: "SENT" },
@@ -43,6 +44,11 @@ const Requests = () => {
 
   const hiddenIncoming = useIncomingAccessRequests({
     filters: { status: "HIDDEN" },
+    pageable: { page: 0, size: 50 },
+  });
+
+  const approvedIncoming = useIncomingAccessRequests({
+    filters: { status: "ACCEPTED" },
     pageable: { page: 0, size: 50 },
   });
 
@@ -57,6 +63,7 @@ const Requests = () => {
 
   const incomingItems = incoming.data?.items ?? [];
   const hiddenItems = hiddenIncoming.data?.items ?? [];
+  const approvedItems = approvedIncoming.data?.items ?? [];
   const outgoingItems = outgoing.data?.items ?? [];
 
   return (
@@ -87,17 +94,30 @@ const Requests = () => {
               </span>
             )}
           </h2>
-          {hiddenItems.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-muted-foreground gap-1.5"
-              onClick={() => setShowHidden(!showHidden)}
-            >
-              {showHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-              {showHidden ? "Hide" : "Show"} hidden ({hiddenItems.length})
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {approvedItems.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground gap-1.5"
+                onClick={() => setShowApproved(!showApproved)}
+              >
+                {showApproved ? <EyeOff className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                {showApproved ? "Hide access granted" : "Show access granted"} ({approvedItems.length})
+              </Button>
+            )}
+            {hiddenItems.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground gap-1.5"
+                onClick={() => setShowHidden(!showHidden)}
+              >
+                {showHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {showHidden ? "Hide hidden" : "Show hidden"} ({hiddenItems.length})
+              </Button>
+            )}
+          </div>
         </div>
 
         <QueryState
@@ -159,32 +179,81 @@ const Requests = () => {
         </QueryState>
 
         {showHidden && hiddenItems.length > 0 && (
-          <div className="mt-3 rounded-2xl border border-dashed border-border overflow-hidden opacity-60">
-            {hiddenItems.map((req) => (
-              <div
-                key={req.id}
-                className="flex items-center gap-4 border-b border-border last:border-0 px-5 py-4"
-              >
-                <UserAvatar userId={req.requester} name={req.requesterName} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{req.requesterName}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    Wants access to: <span className="font-medium text-foreground/70">{req.opinionListName}</span>
-                  </p>
-                </div>
-                <span className="text-[10px] text-muted-foreground/60 shrink-0">{formatRelativeTime(req.timestamp)}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 rounded-lg text-xs text-muted-foreground"
-                  disabled={accept.isPending}
-                  onClick={() => accept.mutate({ requestId: req.id })}
+          <div className="mt-6">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground/50 mb-2 px-1">Hidden</p>
+            <div className="rounded-2xl border border-dashed border-border overflow-hidden opacity-60">
+              {hiddenItems.map((req) => (
+                <div
+                  key={req.id}
+                  className="flex items-center gap-4 border-b border-border last:border-0 px-5 py-4"
                 >
-                  <Check className="mr-1 h-3 w-3" />
-                  Approve
-                </Button>
-              </div>
-            ))}
+                  <UserAvatar userId={req.requester} name={req.requesterName} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{req.requesterName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Wants access to: <span className="font-medium text-foreground/70">{req.opinionListName}</span>
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground/60 shrink-0">{formatRelativeTime(req.timestamp)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-lg text-xs text-muted-foreground"
+                    disabled={accept.isPending}
+                    onClick={() => accept.mutate({ requestId: req.id })}
+                  >
+                    <Check className="mr-1 h-3 w-3" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 rounded-lg p-0 text-destructive hover:text-destructive"
+                    disabled={decline.isPending}
+                    onClick={() => decline.mutate({ requestId: req.id })}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {showApproved && approvedItems.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground/50 mb-2 px-1">Access granted</p>
+            <div className="rounded-2xl border border-dashed border-border overflow-hidden opacity-70">
+              {approvedItems.map((req) => (
+                <div
+                  key={req.id}
+                  className="flex items-center gap-4 border-b border-border last:border-0 px-5 py-4"
+                >
+                  <UserAvatar userId={req.requester} name={req.requesterName} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{req.requesterName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Access granted to: <span className="font-medium text-foreground/70">{req.opinionListName}</span>
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground/60 shrink-0">{formatRelativeTime(req.timestamp)}</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-primary shrink-0">
+                    <Check className="h-3 w-3" />
+                    Approved
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-lg text-xs text-destructive hover:text-destructive"
+                    disabled={decline.isPending}
+                    onClick={() => decline.mutate({ requestId: req.id })}
+                  >
+                    <XCircle className="mr-1 h-3 w-3" />
+                    Revoke
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </motion.section>

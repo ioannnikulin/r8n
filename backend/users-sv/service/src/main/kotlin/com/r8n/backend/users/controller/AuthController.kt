@@ -3,8 +3,10 @@ package com.r8n.backend.users.controller
 import com.r8n.backend.users.api.AuthApi
 import com.r8n.backend.users.api.dto.AuthenticationTokenDto
 import com.r8n.backend.users.api.dto.LoginRequestDto
+import com.r8n.backend.users.api.dto.RegisterRequestDto
 import com.r8n.backend.users.security.RefreshTokenCookieFactory
 import com.r8n.backend.users.service.AuthService
+import com.r8n.backend.users.service.RegistrationAuditContext
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseCookie
 import org.springframework.web.bind.annotation.RestController
@@ -30,6 +32,17 @@ class AuthController(
         return AuthenticationTokenDto(
             accessToken = tokens.accessToken,
             expiresInMilliseconds = tokens.expiresInMilliseconds,
+        )
+    }
+
+    override fun register(request: RegisterRequestDto) {
+        authService.register(
+            request = request,
+            auditContext =
+                RegistrationAuditContext(
+                    ip = currentClientIp(),
+                    userAgent = currentRequest().getHeader(HttpHeaders.USER_AGENT) ?: "Unknown",
+                ),
         )
     }
 
@@ -70,6 +83,12 @@ class AuthController(
             .build()
 
     private fun currentRequest() = currentRequestAttributes().request
+
+    private fun currentClientIp(): String {
+        val forwardedFor = currentRequest().getHeader("X-Forwarded-For")
+        val candidate = forwardedFor?.substringBefore(",")?.trim()?.takeIf { it.isNotEmpty() }
+        return candidate?.takeIf { it.length <= 45 } ?: currentRequest().remoteAddr
+    }
 
     private fun currentResponse() =
         currentRequestAttributes().response

@@ -7,6 +7,5 @@ version = "0.0.1-SNAPSHOT"
 description = "user information service API"
 
 dependencies {
-    implementation(project(":mock-api"))
     implementation(project(":opinions-api"))
 }

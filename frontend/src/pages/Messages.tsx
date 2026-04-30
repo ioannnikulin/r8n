@@ -6,7 +6,7 @@ import {
   Plus,
   SendHorizontal,
 } from "lucide-react";
-import ReviewerAvatar from "@/components/ReviewerAvatar";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -150,6 +150,7 @@ const Messages = () => {
         ? "New support conversation"
         : `Conversation with ${recipientName}`,
       participantName: recipientName,
+      participantLastSeenAt: null,
       participantRole: isSupportThread ? "Support" : "User",
       context: isSupportThread ? "Support conversation" : "Direct message",
       updatedAt: "Just now",
@@ -242,7 +243,11 @@ const Messages = () => {
             >
               <div className="border-b border-border/70 px-5 py-4">
                 <div className="flex items-start gap-4">
-                  <ReviewerAvatar name={thread.participantName} size="md" />
+                  <UserAvatar
+                    name={thread.participantName}
+                    lastSeenAt={thread.participantLastSeenAt}
+                    size="md"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
                       <h2 className="truncate text-sm font-semibold text-foreground">

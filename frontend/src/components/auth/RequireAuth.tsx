@@ -11,7 +11,8 @@ import {
 } from "@/lib/server-state/auth-store";
 
 type AuthStatus = "checking" | "authorized" | "unauthorized";
-const IS_E2E_AUTH_BYPASS_ENABLED = import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
+const IS_E2E_AUTH_BYPASS_ENABLED =
+  import.meta.env.DEV && import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
 
 const RequireAuth = () => {
   const [status, setStatus] = useState<AuthStatus>("checking");

@@ -15,11 +15,6 @@ export interface SelectorDto {
   urlRegex: string;
 }
 
-export interface SupportThreadDto {
-  id: Uuid;
-  messages: string[];
-}
-
 export interface GetSelectorsForUrlRequestDto {
   pageable: PageRequestDto;
   url: string;
@@ -42,20 +37,6 @@ export interface DisagreeWithSelectorRequestDto {
 
 export function createSelectorsApi(client: HttpClient = httpClient) {
   return {
-    disagree(
-      request: DisagreeWithSelectorRequestDto,
-    ): Promise<SupportThreadDto> {
-      return client.post<SupportThreadDto>(
-        `/selectors/${request.selectorId}/disagree`,
-        {
-          auth: "required",
-          query: {
-            comment: request.comment,
-          },
-        },
-      );
-    },
-
     getForSubject(
       request: GetSelectorsForSubjectRequestDto,
     ): Promise<PageResponseDto<SelectorDto>> {

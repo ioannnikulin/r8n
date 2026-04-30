@@ -23,6 +23,7 @@ import java.util.UUID
 @SpringBootTest
 class OpinionRepositoryTest {
     private companion object {
+        @Suppress("unused") // used to store test database container
         @Container
         @ServiceConnection
         val postgres: PostgreSQLContainer =

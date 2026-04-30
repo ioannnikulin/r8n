@@ -43,14 +43,14 @@ class OutgoingAccessRequestRestClient(
 
     override fun create(listId: UUID): AccessRequestDto =
         restClient
-            .get()
+            .post()
             .uri(CREATE_PATH, listId)
             .retrieve()
             .body<AccessRequestDto>()!!
 
     override fun cancel(requestId: UUID): AccessRequestDto =
         restClient
-            .get()
+            .post()
             .uri(CANCEL_PATH, requestId)
             .retrieve()
             .body<AccessRequestDto>()!!

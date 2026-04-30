@@ -7,7 +7,7 @@ data class UserProfile(
     val id: UUID,
     val name: String,
     val status: UserStatusEnum,
-    val lastOnline: Instant?,
+    val lastSeenAt: Instant?,
     val about: String?,
     val location: String?,
 )

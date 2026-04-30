@@ -7,6 +7,7 @@ import com.r8n.backend.opinions.api.access.dto.RequestStatusEnumDto
 import com.r8n.backend.opinions.lists.service.OpinionListService
 import com.r8n.backend.users.integration.api.UsersInternalApi
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 class AccessRequestMapper(
@@ -32,14 +33,17 @@ class AccessRequestMapper(
             RequestStatusEnum.CANCELLED -> RequestStatusEnumDto.CANCELLED
         }
 
-    fun toDto(request: AccessRequest): AccessRequestDto =
+    fun toDto(
+        request: AccessRequest,
+        viewerId: UUID,
+    ): AccessRequestDto =
         with(request) {
             AccessRequestDto(
                 id = id!!,
                 opinionListId = listId,
                 opinionListName =
                     try {
-                        opinionListService.getListName(listId, requesterId)
+                        opinionListService.getListName(listId, viewerId)
                     } catch (_: Exception) {
                         "UNKNOWN"
                     },

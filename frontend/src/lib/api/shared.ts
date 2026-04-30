@@ -29,9 +29,10 @@ export function createPageQuery(pageable: PageRequestDto): HttpQueryParams {
   };
 
   if (pageable.sort && pageable.sort.length > 0) {
-    query.sort = pageable.sort.map(
-      ({ direction = "ASC", property }) => `${property},${direction}`,
-    );
+    pageable.sort.forEach(({ direction = "ASC", property }, index) => {
+      query[`sort[${index}].property`] = property;
+      query[`sort[${index}].direction`] = direction;
+    });
   }
 
   return query;

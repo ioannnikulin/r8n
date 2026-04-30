@@ -24,6 +24,7 @@ import java.util.UUID
 @SpringBootTest
 class AccessRequestRepositoryTest {
     private companion object {
+        @Suppress("unused") // used to store test database container
         @Container
         @ServiceConnection
         val postgres: PostgreSQLContainer =
@@ -94,5 +95,48 @@ class AccessRequestRepositoryTest {
         // Might have more from other tests if not using @DataJpaTest or similar, but here it's @SpringBootTest
         // Let's at least check we have at least 2.
         assert(allRequests.totalElements >= 2)
+    }
+
+    @Test
+    fun `findAllByFilters filters by updatedAt when since is provided`() {
+        val owner = UUID.randomUUID()
+        val requester = UUID.randomUUID()
+        val oldUpdatedAt = Instant.parse("2026-01-01T10:00:00Z")
+        val since = Instant.parse("2026-01-02T10:00:00Z")
+        val newUpdatedAt = Instant.parse("2026-01-03T10:00:00Z")
+
+        val list =
+            opinionListRepository.save(
+                OpinionListPersistence(
+                    owner = owner,
+                    name = "List with access requests",
+                    privacy = OpinionListPrivacyEnum.SEARCHABLE,
+                ),
+            )
+
+        repository.save(
+            AccessRequestPersistence(
+                list = list.id!!,
+                requester = requester,
+                status = RequestStatusEnum.SENT,
+                createdAt = oldUpdatedAt,
+                updatedAt = oldUpdatedAt,
+            ),
+        )
+        val newerRequest =
+            repository.save(
+                AccessRequestPersistence(
+                    list = list.id!!,
+                    requester = requester,
+                    status = RequestStatusEnum.ACCEPTED,
+                    createdAt = oldUpdatedAt,
+                    updatedAt = newUpdatedAt,
+                ),
+            )
+
+        val requests = repository.findAllByFiltersUpdatedSince(list.id, null, owner, since, null, Pageable.unpaged())
+
+        assertEquals(1, requests.totalElements)
+        assertEquals(newerRequest.id, requests.content.single().id)
     }
 }
