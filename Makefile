@@ -34,7 +34,7 @@ frontend_npx() { if command -v nvm >/dev/null 2>&1; then nvm exec $(FRONTEND_NOD
     docker-database-create-data-folder docker-database-drop-volume-personal docker-database-drop-volume-campus docker-database-run docker-database-connect \
     build-opinions who-ate-all-the-space clean-the-fuck-out-of-this-campus-machine \
     frontend-install frontend-install-all frontend-check-node frontend-dev frontend-build frontend-lint \
-    frontend-test frontend-test-unit frontend-test-e2e frontend-test-e2e-ui frontend-test-e2e-api frontend-clean frontend-clean-all frontend-cert frontend-cert-clean \
+    frontend-test frontend-test-unit frontend-test-e2e frontend-test-e2e-ui frontend-test-e2e-ui-chromium frontend-test-e2e-ui-cross-browser frontend-test-e2e-ui-firefox frontend-test-e2e-ui-webkit frontend-test-e2e-api frontend-clean frontend-clean-all frontend-cert frontend-cert-clean \
     lint-backend test-backend test-frontend-prepare test-frontend test-e2e routed-request-opinion-list \
     test-github-backend test-github-frontend test-github-e2e test-github \
     clean fclean re move-caches-to-goinfre gradle-%-bootJar check-makefile
