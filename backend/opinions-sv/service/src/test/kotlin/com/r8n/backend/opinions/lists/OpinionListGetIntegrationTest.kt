@@ -128,6 +128,7 @@ class OpinionListGetIntegrationTest {
         // Anna owns l11, l12, l13 plus two lists from other seed changesets
         assertThat(page.total).isEqualTo(5)
         assertThat(page.items.map { it.listName }).contains("l11", "l12", "l13")
+        assertThat(page.items.single { it.listId == ANNA_L11_ID }.opinionsCount).isEqualTo(5)
     }
 
     @Test
@@ -143,8 +144,8 @@ class OpinionListGetIntegrationTest {
         val summary = objectMapper.readValue<OpinionListSummaryDto>(result.response.contentAsString)
         assertThat(summary.listId).isEqualTo(ANNA_L11_ID)
         assertThat(summary.listName).isEqualTo("l11")
-        // l11 has 2 directly linked opinions (r11, r12)
-        assertThat(summary.opinionsCount).isEqualTo(2)
+        // l11 has 2 direct reviews plus 3 visible synced reviews.
+        assertThat(summary.opinionsCount).isEqualTo(5)
     }
 
     @Test

@@ -1,8 +1,10 @@
 package com.r8n.backend.opinions.access.facade
 
 import com.r8n.backend.opinions.access.domain.AccessRequest
+import com.r8n.backend.opinions.access.domain.AccessRequestIntent
 import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import com.r8n.backend.opinions.api.access.dto.AccessRequestDto
+import com.r8n.backend.opinions.api.access.dto.AccessRequestIntentDto
 import com.r8n.backend.opinions.api.access.dto.RequestStatusEnumDto
 import com.r8n.backend.opinions.lists.service.OpinionListService
 import com.r8n.backend.users.integration.api.UsersInternalApi
@@ -31,6 +33,20 @@ class AccessRequestMapper(
             RequestStatusEnum.REJECTED -> RequestStatusEnumDto.REJECTED
             RequestStatusEnum.HIDDEN -> RequestStatusEnumDto.HIDDEN
             RequestStatusEnum.CANCELLED -> RequestStatusEnumDto.CANCELLED
+        }
+
+    fun toDomain(intent: AccessRequestIntentDto): AccessRequestIntent =
+        when (intent) {
+            AccessRequestIntentDto.NONE -> AccessRequestIntent.NONE
+            AccessRequestIntentDto.COPY -> AccessRequestIntent.COPY
+            AccessRequestIntentDto.MERGE -> AccessRequestIntent.MERGE
+        }
+
+    fun AccessRequestIntent.toDto(): AccessRequestIntentDto =
+        when (this) {
+            AccessRequestIntent.NONE -> AccessRequestIntentDto.NONE
+            AccessRequestIntent.COPY -> AccessRequestIntentDto.COPY
+            AccessRequestIntent.MERGE -> AccessRequestIntentDto.MERGE
         }
 
     fun toDto(
@@ -63,6 +79,8 @@ class AccessRequestMapper(
                     },
                 timestamp = updatedAt,
                 status = status.toDto(),
+                intent = intent.toDto(),
+                targetListId = targetListId,
             )
         }
 }

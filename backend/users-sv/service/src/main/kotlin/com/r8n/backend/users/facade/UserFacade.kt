@@ -4,11 +4,13 @@ import com.r8n.backend.users.api.dto.AssignRoleRequestDto
 import com.r8n.backend.users.api.dto.RoleEnumDto
 import com.r8n.backend.users.api.dto.UpdateMyPublicProfileRequestDto
 import com.r8n.backend.users.api.dto.UserProfileDto
+import com.r8n.backend.users.api.dto.UserSearchResultDto
 import com.r8n.backend.users.api.dto.UserStatusEnumDto
 import com.r8n.backend.users.api.dto.UserWithRolesDto
 import com.r8n.backend.users.api.dto.UsernameDto
 import com.r8n.backend.users.domain.Consent
 import com.r8n.backend.users.domain.UserProfile
+import com.r8n.backend.users.domain.UserSearchResult
 import com.r8n.backend.users.domain.UserSession
 import com.r8n.backend.users.domain.UserStatusEnum
 import com.r8n.backend.users.domain.UserWithRoles
@@ -76,6 +78,11 @@ class UserFacade(
 
     fun getUserProfile(id: UUID) = userService.getProfile(id).toDto()
 
+    fun searchUsers(
+        requesterId: UUID,
+        query: String,
+    ): List<UserSearchResultDto> = userService.searchActiveUsers(requesterId, query).map { it.toDto() }
+
     fun updateMyPublicProfile(
         userId: UUID,
         request: UpdateMyPublicProfileRequestDto,
@@ -120,6 +127,13 @@ class UserFacade(
             lastSeenAt,
             about,
             location,
+        )
+
+    private fun UserSearchResult.toDto() =
+        UserSearchResultDto(
+            id = id,
+            name = name,
+            lastSeenAt = lastSeenAt,
         )
 
     private fun UserStatusEnum.toDto() =

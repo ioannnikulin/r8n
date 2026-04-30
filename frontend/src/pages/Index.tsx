@@ -79,6 +79,7 @@ const Dashboard = () => {
             {lists.map((list) => (
               <Link key={list.listId} to={`/list/${list.listId}`}>
                 <OpinionListCard
+                  id={list.listId}
                   title={list.listName}
                   description=""
                   reviewCount={list.opinionsCount}

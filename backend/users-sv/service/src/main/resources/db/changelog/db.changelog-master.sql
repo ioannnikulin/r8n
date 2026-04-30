@@ -205,3 +205,29 @@ UPDATE users.users_role_assignments
 SET role = 'ADMIN'
 WHERE id = 'a0a0a0a0-a0a0-a0a0-a0a0-a0a0a0a0a0a0'
   AND role <> 'ADMIN';
+
+--changeset mariia:V14_seed_max_support_role context:local,test
+--preconditions onFail:MARK_RAN
+--precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM users.users_role_assignments WHERE id = 'c0c0c0c0-c0c0-c0c0-c0c0-c0c0c0c0c0c0' OR ("user" = '40404040-4040-4040-4040-404040404040' AND role = 'SUPPORT');
+INSERT INTO users.users_role_assignments (id, "user", role, granted_by, timestamp)
+VALUES (
+    'c0c0c0c0-c0c0-c0c0-c0c0-c0c0c0c0c0c0',
+    '40404040-4040-4040-4040-404040404040',
+    'SUPPORT',
+    '00000000-0000-0000-0000-000000000000',
+    '2024-01-01T12:00:00Z'
+)
+ON CONFLICT DO NOTHING;
+
+--changeset mariia:V15_seed_jonas_support_role context:local,test
+--preconditions onFail:MARK_RAN
+--precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM users.users_role_assignments WHERE id = 'd0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0' OR ("user" = '60606060-6060-6060-6060-606060606060' AND role = 'SUPPORT');
+INSERT INTO users.users_role_assignments (id, "user", role, granted_by, timestamp)
+VALUES (
+    'd0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0',
+    '60606060-6060-6060-6060-606060606060',
+    'SUPPORT',
+    '00000000-0000-0000-0000-000000000000',
+    '2024-01-01T12:00:00Z'
+)
+ON CONFLICT DO NOTHING;

@@ -7,6 +7,7 @@ import com.r8n.backend.opinions.api.access.OutgoingAccessRequestApi.Companion.CA
 import com.r8n.backend.opinions.api.access.OutgoingAccessRequestApi.Companion.CREATE_PATH
 import com.r8n.backend.opinions.api.access.OutgoingAccessRequestApi.Companion.GET_PATH
 import com.r8n.backend.opinions.api.access.dto.AccessRequestDto
+import com.r8n.backend.opinions.api.access.dto.AccessRequestIntentDto
 import com.r8n.backend.opinions.api.access.dto.RequestStatusEnumDto
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
@@ -41,11 +42,20 @@ class OutgoingAccessRequestRestClient(
             }.retrieve()
             .body<PageResponseDto<AccessRequestDto>>()!!
 
-    override fun create(listId: UUID): AccessRequestDto =
+    override fun create(
+        listId: UUID,
+        intent: AccessRequestIntentDto,
+        targetListId: UUID?,
+    ): AccessRequestDto =
         restClient
             .post()
-            .uri(CREATE_PATH, listId)
-            .retrieve()
+            .uri { uriBuilder ->
+                uriBuilder
+                    .path(CREATE_PATH)
+                    .queryParam("intent", intent)
+                    .queryParamIfPresent("targetListId", Optional.ofNullable(targetListId))
+                    .build(listId)
+            }.retrieve()
             .body<AccessRequestDto>()!!
 
     override fun cancel(requestId: UUID): AccessRequestDto =

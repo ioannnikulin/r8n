@@ -423,6 +423,33 @@ describe("API modules", () => {
     );
   });
 
+  it("searches active users through the users API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createJsonResponse([
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          lastSeenAt: null,
+          name: "Jane Doe",
+        },
+      ]),
+    );
+    const client = createHttpClient({
+      baseUrl: "/api",
+      fetchFn: fetchMock,
+    });
+    const usersApi = createUsersApi(client);
+
+    await usersApi.searchUsers("Jane");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/users/search?query=Jane",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
+
   it("merges pagination and filters for opinion list searches", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       createJsonResponse({
@@ -793,14 +820,78 @@ describe("API modules", () => {
     });
     const messagingApi = createMessagingApi(client);
 
+    await messagingApi.getUnreadMessagesCount();
+    await messagingApi.getSupportThreadSummaries({
+      pageable: { page: 0, size: 10 },
+    });
+    await messagingApi.getDirectConversationSummaries({
+      pageable: { page: 0, size: 10 },
+    });
+    await messagingApi.createDirectConversation({
+      initialMessage: "Hello Jane.",
+      recipientUserId: "22222222-2222-2222-2222-222222222222",
+    });
+    await messagingApi.getDirectConversationMessages({
+      conversationId: "33333333-3333-3333-3333-333333333333",
+      pageable: { page: 1, size: 20 },
+    });
+    await messagingApi.addDirectConversationMessage({
+      conversationId: "33333333-3333-3333-3333-333333333333",
+      request: { text: "Additional context." },
+    });
     await messagingApi.createSupportThread({
       initialMessage: "Selector is outdated",
     });
+    await messagingApi.getSupportThreadMessages({
+      pageable: { page: 1, size: 20 },
+      threadId: "11111111-1111-1111-1111-111111111111",
+    });
+    await messagingApi.addSupportThreadMessage({
+      request: { text: "Additional context." },
+      threadId: "11111111-1111-1111-1111-111111111111",
+    });
 
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/messaging/support/threads");
-    expect(fetchMock.mock.calls[0][1]).toEqual(
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/messaging/unread-count");
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/messaging/support/threads?page=0&size=10");
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/messaging/direct/conversations?page=0&size=10");
+    expect(fetchMock.mock.calls[3][0]).toBe("/api/messaging/direct/conversations");
+    expect(fetchMock.mock.calls[3][1]).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({
+          initialMessage: "Hello Jane.",
+          recipientUserId: "22222222-2222-2222-2222-222222222222",
+        }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock.mock.calls[4][0]).toBe(
+      "/api/messaging/direct/conversations/33333333-3333-3333-3333-333333333333/messages?page=1&size=20",
+    );
+    expect(fetchMock.mock.calls[5][0]).toBe(
+      "/api/messaging/direct/conversations/33333333-3333-3333-3333-333333333333/messages",
+    );
+    expect(fetchMock.mock.calls[5][1]).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({ text: "Additional context." }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock.mock.calls[6][0]).toBe("/api/messaging/support/threads");
+    expect(fetchMock.mock.calls[6][1]).toEqual(
       expect.objectContaining({
         body: JSON.stringify({ initialMessage: "Selector is outdated" }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock.mock.calls[7][0]).toBe(
+      "/api/messaging/support/threads/11111111-1111-1111-1111-111111111111/messages?page=1&size=20",
+    );
+    expect(fetchMock.mock.calls[8][0]).toBe(
+      "/api/messaging/support/threads/11111111-1111-1111-1111-111111111111/messages",
+    );
+    expect(fetchMock.mock.calls[8][1]).toEqual(
+      expect.objectContaining({
+        body: JSON.stringify({ text: "Additional context." }),
         method: "POST",
       }),
     );

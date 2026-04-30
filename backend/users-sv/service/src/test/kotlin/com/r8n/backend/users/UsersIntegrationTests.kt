@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multi
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -92,6 +93,11 @@ class UsersIntegrationTests {
             "Berlin, Germany",
             UUID.fromString(USER_ID),
         )
+        jdbcTemplate.update(
+            "UPDATE users.users SET status = ? WHERE id = ?",
+            "ACTIVE",
+            UUID.fromString("10101010-1010-1010-1010-101010101010"),
+        )
     }
 
     private fun userAccessToken() = tokenService.generateAccessToken(UUID.fromString(USER_ID), listOf("USER"))
@@ -131,6 +137,47 @@ class UsersIntegrationTests {
 
         assertTrue(actual.lastSeenAt != null, "lastSeenAt should not be null")
         assertEquals(lastSeenAt, actual.lastSeenAt)
+    }
+
+    @Test
+    fun `search users returns active users by display name and excludes requester`() {
+        val accessToken = tokenService.generateAccessToken(UUID.fromString(USER_ID), listOf("USER"))
+
+        mockMvc
+            .perform(
+                get("/api/users/search")
+                    .param("query", "bern")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].id").value("10101010-1010-1010-1010-101010101010"))
+            .andExpect(jsonPath("$[0].name").value("coffee expert Bernard"))
+
+        mockMvc
+            .perform(
+                get("/api/users/search")
+                    .param("query", "Test")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(0))
+    }
+
+    @Test
+    fun `search users does not return inactive users`() {
+        jdbcTemplate.update(
+            "UPDATE users.users SET status = ? WHERE id = ?",
+            "SUSPENDED",
+            UUID.fromString("10101010-1010-1010-1010-101010101010"),
+        )
+        val accessToken = tokenService.generateAccessToken(UUID.fromString(USER_ID), listOf("USER"))
+
+        mockMvc
+            .perform(
+                get("/api/users/search")
+                    .param("query", "Bernard")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(0))
     }
 
     @Test

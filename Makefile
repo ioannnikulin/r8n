@@ -28,7 +28,7 @@ frontend_npx() { if command -v nvm >/dev/null 2>&1; then nvm exec $(FRONTEND_NOD
     prebuild-jars prepare-artifacts verify-artifacts docker-build docker-up \
     docker-certs docker-certs-force internal-certs internal-certs-force internal-certs-clean docker-certs-clean docker-secrets-clean docker-secrets-init edge-certs edge-certs-force \
     docker-down docker-logs clean-artifacts ensure-log-dirs clean-logs \
-    get-token refresh-token logout routed-request-opinion routed-request-mock routed-request-user-profile routed-request-gdpr routed-request-messaging-threads direct-request-opinion direct-request-mock \
+    get-token refresh-token logout routed-request-opinion routed-request-mock routed-request-user-profile routed-request-gdpr routed-request-messaging-threads direct-request-opinion direct-request-mock direct-request-messaging-threads \
     direct-request-swagger public-request-user routed-request-opinion-approved routed-request-opinion-forbidden routed-request-opinion-mine \
     routed-request-moderation-approve-flow routed-request-moderation-reject-flow routed-request-moderation-decisions \
     docker-database-create-data-folder docker-database-drop-volume-personal docker-database-drop-volume-campus docker-database-run docker-database-connect \
@@ -657,6 +657,12 @@ direct-request-opinion: ## HTTP direct request to opinions (local)
 direct-request-mock: ## HTTP direct request to mock (local)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
 	curl "http://localhost:8090/api/opinion-lists/00000000-0000-0000-0000-000000000000/summary" -i -H "Authorization: Bearer $$(cat .access_token)"
+
+direct-request-messaging-threads: ## HTTP direct request to messaging thread summaries (local)
+	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi
+	@$(LOAD_LOCAL_ENV) \
+	curl "$${INTERSERVICE_PROTOCOL:-http}://$${SERVICES_MESSAGING_HOST:-localhost}:$${SERVICES_MESSAGING_PORT:-8084}/api/messaging/support/threads?page=0&size=10" \
+		-i -H "Authorization: Bearer $$(cat .access_token)"
 
 direct-request-swagger: ## HTTP direct request to users swagger (local)
 	@if [ ! -f .access_token ]; then $(MAKE) get-token; fi

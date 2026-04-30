@@ -13,4 +13,6 @@ data class AccessRequestDto(
     val requesterName: String,
     val timestamp: Instant,
     val status: RequestStatusEnumDto,
+    val intent: AccessRequestIntentDto = AccessRequestIntentDto.NONE,
+    val targetListId: UUID? = null,
 )

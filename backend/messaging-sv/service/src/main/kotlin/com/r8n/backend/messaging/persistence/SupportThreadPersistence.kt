@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.UuidGenerator
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -17,4 +18,6 @@ class SupportThreadPersistence(
     var id: UUID? = null,
     @Column(name = "owner_user_id", nullable = false)
     var ownerUserId: UUID,
+    @Column(name = "requester_last_read_at")
+    var requesterLastReadAt: Instant? = null,
 )

@@ -3,6 +3,7 @@ package com.r8n.backend.opinions.api.access
 import com.r8n.backend.core.api.PageRequestDto
 import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.api.access.dto.AccessRequestDto
+import com.r8n.backend.opinions.api.access.dto.AccessRequestIntentDto
 import com.r8n.backend.opinions.api.access.dto.RequestStatusEnumDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -56,6 +57,10 @@ interface OutgoingAccessRequestApi {
     fun create(
         @Parameter(description = "Opinion list identifier to request access to.")
         @PathVariable listId: UUID,
+        @RequestParam(defaultValue = "NONE")
+        intent: AccessRequestIntentDto,
+        @RequestParam(required = false)
+        targetListId: UUID?,
     ): AccessRequestDto
 
     @PostMapping(CANCEL_PATH)

@@ -25,6 +25,12 @@ export interface UserProfileDto {
   location: string | null;
 }
 
+export interface UserSearchResultDto {
+  id: Uuid;
+  name: string;
+  lastSeenAt: string | null;
+}
+
 export interface UploadMyAvatarRequestDto {
   file: File;
 }
@@ -53,6 +59,13 @@ export function createUsersApi(client: HttpClient = httpClient) {
 
     getUser(id: Uuid): Promise<UserProfileDto> {
       return client.get<UserProfileDto>(`/users/${id}`, { auth: "required" });
+    },
+
+    searchUsers(query: string): Promise<UserSearchResultDto[]> {
+      return client.get<UserSearchResultDto[]>("/users/search", {
+        auth: "required",
+        query: { query },
+      });
     },
 
     updateMyPublicProfile(request: UpdateMyPublicProfileRequestDto): Promise<UserProfileDto> {

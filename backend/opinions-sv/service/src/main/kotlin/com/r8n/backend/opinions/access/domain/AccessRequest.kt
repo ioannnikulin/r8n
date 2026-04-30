@@ -11,4 +11,6 @@ class AccessRequest(
     var status: RequestStatusEnum,
     var createdAt: Instant,
     var updatedAt: Instant,
+    var intent: AccessRequestIntent = AccessRequestIntent.NONE,
+    var targetListId: UUID? = null,
 )

@@ -16,6 +16,12 @@ interface AccessRequestRepository : JpaRepository<AccessRequestPersistence, UUID
         statuses: List<RequestStatusEnum>,
     ): List<AccessRequestPersistence>
 
+    fun findFirstByRequesterAndListAndStatus(
+        requesterId: UUID,
+        listId: UUID,
+        status: RequestStatusEnum,
+    ): AccessRequestPersistence?
+
     @Query(
         """
         SELECT ar FROM AccessRequestPersistence ar

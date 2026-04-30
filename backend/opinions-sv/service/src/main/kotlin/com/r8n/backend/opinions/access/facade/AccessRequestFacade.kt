@@ -5,6 +5,7 @@ import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.core.utils.toPageable
 import com.r8n.backend.opinions.access.service.AccessRequestService
 import com.r8n.backend.opinions.api.access.dto.AccessRequestDto
+import com.r8n.backend.opinions.api.access.dto.AccessRequestIntentDto
 import com.r8n.backend.opinions.api.access.dto.RequestStatusEnumDto
 import org.springframework.stereotype.Component
 import java.time.Instant
@@ -66,7 +67,13 @@ class AccessRequestFacade(
     fun createRequest(
         listId: UUID,
         requesterId: UUID,
-    ): AccessRequestDto = accessRequestMapper.toDto(service.createRequest(listId, requesterId), requesterId)
+        intent: AccessRequestIntentDto,
+        targetListId: UUID?,
+    ): AccessRequestDto =
+        accessRequestMapper.toDto(
+            service.createRequest(listId, requesterId, accessRequestMapper.toDomain(intent), targetListId),
+            requesterId,
+        )
 
     fun cancelRequest(
         requestId: UUID,

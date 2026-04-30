@@ -14,6 +14,7 @@ import type {
   UpdateMyPublicProfileRequestDto,
   UploadMyAvatarRequestDto,
   UserProfileDto,
+  UserSearchResultDto,
   UserWithRolesDto,
 } from "@/lib/api/users";
 import { usersKeys } from "@/lib/server-state/query-keys";
@@ -38,6 +39,23 @@ export function useUserProfile(
     queryKey: usersKeys.detail(id),
     queryFn: () => usersApi.getUser(id),
     enabled: !!id,
+    ...options,
+  });
+}
+
+export function useUserSearch(
+  query: string,
+  options?: Omit<
+    UseQueryOptions<UserSearchResultDto[], Error, UserSearchResultDto[], QueryKey>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  const normalizedQuery = query.trim();
+
+  return useAuthorizedQuery({
+    queryKey: usersKeys.search(normalizedQuery),
+    queryFn: () => usersApi.searchUsers(normalizedQuery),
+    enabled: normalizedQuery.length >= 2,
     ...options,
   });
 }

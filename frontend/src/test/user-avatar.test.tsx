@@ -134,6 +134,18 @@ describe("UserAvatar", () => {
     expect(await screen.findByText("Last seen 15 minutes ago")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("renders as passive content when interaction is disabled", () => {
+    const lastSeenAt = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+    renderWithClient(
+      <UserAvatar name="Alex Krüger" lastSeenAt={lastSeenAt} interactive={false} />,
+    );
+
+    expect(screen.getByText("AK")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Alex Krüger presence" })).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 function renderWithClient(ui: ReactElement) {

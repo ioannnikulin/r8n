@@ -12,6 +12,8 @@ object Authority {
     const val SUPPORT = "ROLE_SUPPORT"
     const val IS_SUPPORT = "hasRole('$SUPPORT')"
     const val IS_USER_OR_SUPPORT = "hasRole('$USER') or hasRole('$SUPPORT')"
+    const val IS_EXPLICIT_USER_OR_MODERATOR_OR_SUPPORT_OR_ADMIN =
+        "authentication.authorities.?[authority == '$USER' or authority == '$MODERATOR' or authority == '$SUPPORT' or authority == '$ADMIN'].size() > 0"
     const val SERVICE = "ROLE_SERVICE"
     const val IS_SERVICE = "hasRole('$SERVICE')"
     const val IS_USER_OR_SERVICE = "hasRole('$USER') or hasRole('$SERVICE')"

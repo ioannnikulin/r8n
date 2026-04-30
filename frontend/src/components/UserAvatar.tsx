@@ -15,6 +15,7 @@ interface UserAvatarProps {
   lastSeenAt?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
+  interactive?: boolean;
 }
 
 const UserAvatar = ({
@@ -23,6 +24,7 @@ const UserAvatar = ({
   lastSeenAt,
   size = "md",
   className,
+  interactive = true,
 }: UserAvatarProps) => {
   if (userId) {
     return (
@@ -32,11 +34,12 @@ const UserAvatar = ({
         fallbackLastSeenAt={lastSeenAt}
         size={size}
         className={className}
+        interactive={interactive}
       />
     );
   }
 
-  if (lastSeenAt !== undefined) {
+  if (interactive && lastSeenAt !== undefined) {
     return (
       <PresenceAvatar
         name={name}
@@ -56,6 +59,7 @@ interface ProfileUserAvatarProps {
   fallbackLastSeenAt?: string | null;
   size: "sm" | "md" | "lg";
   className?: string;
+  interactive: boolean;
 }
 
 function ProfileUserAvatar({
@@ -64,6 +68,7 @@ function ProfileUserAvatar({
   fallbackLastSeenAt,
   size,
   className,
+  interactive,
 }: ProfileUserAvatarProps) {
   const { data: avatar } = useUserAvatar(userId ?? "", {
     enabled: true,
@@ -76,6 +81,17 @@ function ProfileUserAvatar({
     staleTime: 60_000,
   });
   const avatarUrl = useObjectUrl(avatar);
+
+  if (!interactive) {
+    return (
+      <ReviewerAvatar
+        name={name}
+        image={avatarUrl}
+        size={size}
+        className={className}
+      />
+    );
+  }
 
   return (
     <PresenceAvatar

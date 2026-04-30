@@ -1,5 +1,6 @@
 package com.r8n.backend.opinions.access.persistence
 
+import com.r8n.backend.opinions.access.domain.AccessRequestIntent
 import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -35,4 +36,11 @@ class AccessRequestPersistence(
 //
     @Column(nullable = false)
     var updatedAt: Instant,
+//
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    var intent: AccessRequestIntent = AccessRequestIntent.NONE,
+//
+    @Column(name = "target_list_id")
+    var targetListId: UUID? = null,
 )

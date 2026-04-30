@@ -6,6 +6,7 @@ import type { Uuid } from "@/lib/api/shared";
 import { cn } from "@/lib/utils";
 
 export interface OpinionListCardProps {
+  id: Uuid;
   title: string;
   description: string;
   reviewCount: number;
@@ -19,6 +20,7 @@ export interface OpinionListCardProps {
 }
 
 const OpinionListCard = ({
+  id,
   title,
   description,
   reviewCount,
@@ -67,6 +69,7 @@ const OpinionListCard = ({
       {!hasAccess && (
         <div className="mt-3 pt-3 border-t border-border">
           <AccessRequestButton
+            listId={id}
             status={accessStatus}
             listTitle={title}
             className="w-full text-xs"

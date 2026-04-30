@@ -29,6 +29,10 @@ class SupportMessagePersistence(
     var text: String,
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
+    @Column(name = "read_by_support_at")
+    var readBySupportAt: Instant? = null,
+    @Column(name = "read_by_support_user_id")
+    var readBySupportUserId: UUID? = null,
 )
 
 enum class SupportParticipantRoleEnumPersistence {

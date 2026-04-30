@@ -163,4 +163,6 @@ class TokenService(
     }
 
     fun getAccessTokenExpirationMillis(): Long = accessTokenExpiration.toMillis()
+
+    fun getRefreshTokenExpiration(): Duration = refreshTokenExpiration
 }

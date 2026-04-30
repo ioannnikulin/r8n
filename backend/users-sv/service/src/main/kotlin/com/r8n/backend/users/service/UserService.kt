@@ -2,6 +2,7 @@ package com.r8n.backend.users.service
 
 import com.r8n.backend.users.domain.User
 import com.r8n.backend.users.domain.UserProfile
+import com.r8n.backend.users.domain.UserSearchResult
 import com.r8n.backend.users.domain.UserStatusEnum
 import com.r8n.backend.users.domain.UserWithRoles
 import com.r8n.backend.users.domain.Username
@@ -12,6 +13,7 @@ import com.r8n.backend.users.provider.database.UserRepository
 import com.r8n.backend.users.provider.database.UserRoleAssignmentRepository
 import org.springframework.dao.CannotSerializeTransactionException
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -75,6 +77,30 @@ class UserService(
             statusTimestamp = userPersistence.statusTimestamp,
             consents = consents,
         )
+    }
+
+    fun searchActiveUsers(
+        requesterId: UUID,
+        query: String,
+    ): List<UserSearchResult> {
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.length < 2) {
+            return emptyList()
+        }
+
+        return userRepository
+            .searchByNameAndStatus(
+                query = normalizedQuery,
+                status = UserStatusEnum.ACTIVE,
+                excludedUserId = requesterId,
+                pageable = PageRequest.of(0, 10),
+            ).map {
+                UserSearchResult(
+                    id = it.id,
+                    name = it.name,
+                    lastSeenAt = it.lastSeenAt,
+                )
+            }
     }
 
     fun getMyName(userId: UUID): Username {

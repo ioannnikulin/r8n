@@ -5,6 +5,7 @@ import { ArrowLeft, List, ChevronDown, Plus, Link2, GitMerge, Search, MoreHorizo
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import RatingInput from "@/components/RatingInput";
 import { QueryState } from "@/components/server-state/QueryState";
 import { cn } from "@/lib/utils";
 import {
@@ -402,19 +403,18 @@ const ItemRow = ({
   const [showForm, setShowForm] = useState(false);
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
-  const [rating, setRating] = useState("");
+  const [rating, setRating] = useState<number | null>(null);
 
   const hasMyReview = summary.ownMark !== null;
 
   const handleSubmit = async () => {
-    const ratingNum = parseFloat(rating);
-    if (!subjective.trim() || !objective.trim() || isNaN(ratingNum) || ratingNum < 0 || ratingNum > 10) return;
+    if (!subjective.trim() || !objective.trim() || rating === null) return;
     try {
-      await onAddReview(summary.subject, ratingNum, subjective.trim(), objective.trim());
+      await onAddReview(summary.subject, rating, subjective.trim(), objective.trim());
       setShowForm(false);
       setSubjective("");
       setObjective("");
-      setRating("");
+      setRating(null);
     } catch {
       // error surfaced via mutation meta errorTitle toast — keep form open so user can retry
     }
@@ -525,7 +525,7 @@ const ItemRow = ({
                             <div>
                               <label className="text-[10px] font-medium text-muted-foreground mb-1 block">Subjective opinion</label>
                               <Input
-                                placeholder="How did it taste?"
+                                placeholder="How was it for you?"
                                 value={subjective}
                                 onChange={(e) => setSubjective(e.target.value)}
                                 className="h-8 text-xs"
@@ -534,27 +534,18 @@ const ItemRow = ({
                             <div>
                               <label className="text-[10px] font-medium text-muted-foreground mb-1 block">Objective facts</label>
                               <Input
-                                placeholder="Temperature, roast, etc."
+                                placeholder="Factual notes: size, material, price..."
                                 value={objective}
                                 onChange={(e) => setObjective(e.target.value)}
                                 className="h-8 text-xs"
                               />
                             </div>
                           </div>
-                          <div className="flex items-end gap-3">
-                            <div>
-                              <label className="text-[10px] font-medium text-muted-foreground mb-1 block">Rating (0–10)</label>
-                              <Input
-                                type="number"
-                                min={0}
-                                max={10}
-                                step={0.1}
-                                placeholder="0.0"
-                                value={rating}
-                                onChange={(e) => setRating(e.target.value)}
-                                className="h-8 w-20 text-xs font-mono"
-                              />
-                            </div>
+                          <div>
+                            <label className="text-[10px] font-medium text-muted-foreground mb-1 block">Rating (0–10)</label>
+                            <RatingInput value={rating} onChange={setRating} ariaLabel="Rating" />
+                          </div>
+                          <div className="flex items-center gap-3 pt-1">
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
@@ -888,24 +879,22 @@ const EditOpinionDialog = ({
   onClose: () => void;
   onSubmit: (opinionId: Uuid, mark: number, subjective: string, objective: string) => void;
 }) => {
-  const [mark, setMark] = useState("");
+  const [mark, setMark] = useState<number | null>(null);
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
   const [hydratedFor, setHydratedFor] = useState<Uuid | null>(null);
 
   if (row && hydratedFor !== row.opinionId) {
-    setMark(row.mark !== null ? String(row.mark) : "");
+    setMark(row.mark);
     setSubjective(row.subjective.join(", "));
     setObjective(row.objective.join(", "));
     setHydratedFor(row.opinionId);
   }
 
   const handleSubmit = () => {
-    if (!row) return;
-    const m = parseFloat(mark);
-    if (isNaN(m) || m < 0 || m > 10) return;
+    if (!row || mark === null) return;
     if (!subjective.trim() || !objective.trim()) return;
-    onSubmit(row.opinionId, m, subjective.trim(), objective.trim());
+    onSubmit(row.opinionId, mark, subjective.trim(), objective.trim());
   };
 
   return (
@@ -933,15 +922,7 @@ const EditOpinionDialog = ({
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Rating (0–10)</label>
-            <Input
-              type="number"
-              min={0}
-              max={10}
-              step={0.1}
-              value={mark}
-              onChange={(e) => setMark(e.target.value)}
-              className="w-24 text-xs font-mono"
-            />
+            <RatingInput value={mark} onChange={setMark} ariaLabel="Rating" />
           </div>
         </div>
         <DialogFooter>

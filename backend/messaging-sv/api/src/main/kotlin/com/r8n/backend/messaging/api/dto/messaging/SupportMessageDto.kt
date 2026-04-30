@@ -7,6 +7,7 @@ data class SupportMessageDto(
     val id: UUID,
     val threadId: UUID,
     val authorUserId: UUID,
+    val authorDisplayName: String,
     val authorRole: SupportParticipantRoleEnumDto,
     val text: String,
     val createdAt: Instant,

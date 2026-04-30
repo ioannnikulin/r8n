@@ -5,6 +5,7 @@ import com.r8n.backend.core.api.PageResponseDto
 import com.r8n.backend.opinions.access.facade.AccessRequestFacade
 import com.r8n.backend.opinions.api.access.OutgoingAccessRequestApi
 import com.r8n.backend.opinions.api.access.dto.AccessRequestDto
+import com.r8n.backend.opinions.api.access.dto.AccessRequestIntentDto
 import com.r8n.backend.opinions.api.access.dto.RequestStatusEnumDto
 import com.r8n.backend.security.Authority.IS_USER
 import com.r8n.backend.security.CurrentUserIdentifier.getCurrentUserId
@@ -26,7 +27,11 @@ class OutgoingAccessRequestController(
     ): PageResponseDto<AccessRequestDto> = facade.getOutgoing(forListId, since, status, pageable, getCurrentUserId())
 
     @PreAuthorize(IS_USER)
-    override fun create(listId: UUID): AccessRequestDto = facade.createRequest(listId, getCurrentUserId())
+    override fun create(
+        listId: UUID,
+        intent: AccessRequestIntentDto,
+        targetListId: UUID?,
+    ): AccessRequestDto = facade.createRequest(listId, getCurrentUserId(), intent, targetListId)
 
     @PreAuthorize(IS_USER)
     override fun cancel(requestId: UUID): AccessRequestDto = facade.cancelRequest(requestId, getCurrentUserId())

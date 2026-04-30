@@ -12,7 +12,7 @@ import {
   useHideIncomingAccessRequestMutation,
   useCancelOutgoingAccessRequestMutation,
 } from "@/lib/server-state/hooks/access-requests";
-import type { RequestStatusEnumDto } from "@/lib/api/access-requests";
+import type { AccessRequestDto, RequestStatusEnumDto } from "@/lib/api/access-requests";
 
 function formatRelativeTime(timestamp: string): string {
   const diff = Date.now() - new Date(timestamp).getTime();

@@ -75,10 +75,11 @@ class OpinionListService(
             opinionListRepository.findById(addedListId).orElseThrow {
                 ResponseStatusException(HttpStatus.NOT_FOUND)
             }
-        if (addedList.privacy == OpinionListPrivacyEnum.PRIVATE) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        }
         if (!accessService.canAccessOpinionList(userId, addedListId, OpinionListPermissionEnum.VIEW)) {
+            // PRIVATE → 404 to hide existence; SEARCHABLE → 403 since existence is public.
+            if (addedList.privacy == OpinionListPrivacyEnum.PRIVATE) {
+                throw ResponseStatusException(HttpStatus.NOT_FOUND)
+            }
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have access to the source list")
         }
 
@@ -355,6 +356,11 @@ class OpinionListService(
             }
         }
 
+    private fun countVisibleOpinions(
+        listId: UUID,
+        requesterId: UUID,
+    ): Long = fetchAndEnrichOpinions(resolveAllAssignments(listId), requesterId).size.toLong()
+
     private fun calculateSummaries(
         list: OpinionListPersistence,
         opinions: List<Opinion>,
@@ -425,7 +431,7 @@ class OpinionListService(
             name = list.name,
             owner = list.owner,
             privacy = list.privacy,
-            opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
+            opinionsCount = countVisibleOpinions(list.id!!, requesterId),
             grantedAccessCount = accessService.countAcceptedForList(list.id!!),
         )
     }
@@ -440,7 +446,7 @@ class OpinionListService(
                 name = list.name,
                 owner = list.owner,
                 privacy = list.privacy,
-                opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
+                opinionsCount = countVisibleOpinions(list.id!!, ownerId),
                 grantedAccessCount = accessService.countAcceptedForList(list.id!!),
             )
         }
@@ -478,7 +484,7 @@ class OpinionListService(
                         name = list.name,
                         owner = list.owner,
                         privacy = list.privacy,
-                        opinionsCount = opinionsAssignmentRepository.countByOpinionList(list.id!!),
+                        opinionsCount = countVisibleOpinions(list.id!!, requesterId),
                         grantedAccessCount = accessService.countAcceptedForList(list.id!!),
                     )
                 } else {

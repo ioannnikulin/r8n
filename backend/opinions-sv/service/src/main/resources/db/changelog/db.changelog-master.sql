@@ -483,3 +483,19 @@ UPDATE opinions.subjects SET name = 'flat white'
   WHERE id = '1b1b1b1b-1b1b-1b1b-1b1b-1b1b1b1b1b1b' AND name = 'flat white @ Five Elephant';
 UPDATE opinions.subjects SET name = 'latte'
   WHERE id = '1c1c1c1c-1c1c-1c1c-1c1c-1c1c1c1c1c1c' AND name = 'latte @ Father Carpenter';
+
+--changeset ditabisko:V17_access_request_intent
+
+ALTER TABLE opinions.access_requests
+    ADD COLUMN intent VARCHAR(16) NOT NULL DEFAULT 'NONE',
+    ADD COLUMN target_list_id UUID;
+
+ALTER TABLE opinions.access_requests
+    ADD CONSTRAINT chk_ar_intent CHECK (intent IN ('NONE','COPY','MERGE')),
+    ADD CONSTRAINT chk_ar_target_required CHECK (
+        (intent = 'MERGE' AND target_list_id IS NOT NULL)
+        OR (intent <> 'MERGE' AND target_list_id IS NULL)
+    );
+
+CREATE INDEX idx_access_requests_target_list_id
+    ON opinions.access_requests(target_list_id) WHERE target_list_id IS NOT NULL;

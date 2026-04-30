@@ -35,11 +35,14 @@ class AuthService(
         const val NAME_MAX_LENGTH = 255
         const val PASSWORD_MIN_LENGTH = 12
         const val PASSWORD_MAX_LENGTH = 128
-        const val REGISTRATION_CONSENT_SESSION_OS = "Unknown"
         val REGISTRATION_CONSENT_SESSION_DURATION: Duration = Duration.ofDays(1)
     }
 
-    fun login(request: LoginRequestDto): AuthenticationTokens {
+    @Transactional
+    fun login(
+        request: LoginRequestDto,
+        auditContext: LoginAuditContext,
+    ): AuthenticationTokens {
         val user =
             userRepository.findByNormalizedEmail(normalizeEmail(request.login))
                 ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials")
@@ -50,9 +53,23 @@ class AuthService(
 
         val roles =
             (listOf("USER") + userRoleAssignmentRepository.findAllByUser(user.id).map { it.role.name }).distinct()
+        val now = Instant.now()
         val accessToken = tokenService.generateAccessToken(user.id, roles)
         val refreshToken = tokenService.generateRefreshToken(user.id)
-        userRepository.updateLastSeenAt(user.id, Instant.now())
+        userRepository.updateLastSeenAt(user.id, now)
+        jdbcTemplate.update(
+            """
+            INSERT INTO users.sessions (id, user_id, created, expires, ip, user_agent, os)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            UUID.randomUUID(),
+            user.id,
+            Timestamp.from(now),
+            Timestamp.from(now.plus(tokenService.getRefreshTokenExpiration())),
+            auditContext.ip,
+            auditContext.userAgent,
+            auditContext.operatingSystem,
+        )
 
         return AuthenticationTokens(
             accessToken = accessToken,
@@ -112,7 +129,7 @@ class AuthService(
                 Timestamp.from(now.plus(REGISTRATION_CONSENT_SESSION_DURATION)),
                 auditContext.ip,
                 auditContext.userAgent,
-                REGISTRATION_CONSENT_SESSION_OS,
+                auditContext.operatingSystem,
             )
 
             jdbcTemplate.update(

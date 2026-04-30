@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Search, Plus, Building2, MapPin } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import RatingInput from "@/components/RatingInput";
 import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -18,15 +19,6 @@ import { useCreateSubjectMutation, useFindSubjects, useSetPrimaryReferentMutatio
 import { useCreateReferentMutation, useFindReferents } from "@/lib/server-state/hooks/referents";
 import type { Uuid } from "@/lib/api/shared";
 
-const RATING_MIN = 1;
-const RATING_MAX = 10;
-const RATING_STEP = 0.1;
-
-const clampRating = (n: number) => {
-  const clamped = Math.min(RATING_MAX, Math.max(RATING_MIN, n));
-  return Math.round(clamped * 10) / 10;
-};
-
 const RatingRow = ({
   label,
   description,
@@ -36,43 +28,14 @@ const RatingRow = ({
   label: string;
   description: string;
   value: number | null;
-  onChange: (v: number) => void;
-}) => {
-  const sliderValue = value ?? RATING_MIN;
-  const handleNumberInput = (raw: string) => {
-    if (raw === "") return;
-    const parsed = parseFloat(raw);
-    if (Number.isNaN(parsed)) return;
-    onChange(clampRating(parsed));
-  };
-  return (
-    <div>
-      <label className="mb-0.5 block text-sm font-medium text-foreground">{label}</label>
-      <p className="mb-2 text-xs text-muted-foreground">{description}</p>
-      <div className="flex items-center gap-3">
-        <input
-          type="number"
-          min={RATING_MIN}
-          max={RATING_MAX}
-          step={RATING_STEP}
-          value={value ?? ""}
-          onChange={(e) => handleNumberInput(e.target.value)}
-          className="h-9 w-20 rounded-lg border border-border bg-card px-2 text-sm font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-        />
-        <input
-          type="range"
-          min={RATING_MIN}
-          max={RATING_MAX}
-          step={RATING_STEP}
-          value={sliderValue}
-          onChange={(e) => onChange(clampRating(parseFloat(e.target.value)))}
-          className="flex-1 accent-primary"
-          aria-label={label}
-        />
-      </div>
-    </div>
-  );
-};
+  onChange: (v: number | null) => void;
+}) => (
+  <div>
+    <label className="mb-0.5 block text-sm font-medium text-foreground">{label}</label>
+    <p className="mb-2 text-xs text-muted-foreground">{description}</p>
+    <RatingInput value={value} onChange={onChange} ariaLabel={label} />
+  </div>
+);
 
 interface LinkedSupplier {
   id: Uuid;
@@ -456,7 +419,7 @@ const CreateListDialog = ({
                   handleSubmit();
                 }
               }}
-              placeholder="e.g., Best espresso in Berlin"
+              placeholder="Name your list"
               className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
             />
           </div>
@@ -644,7 +607,7 @@ const CreateReview = () => {
           <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
             <RatingRow
               label="Rating"
-              description="Your overall assessment on a scale of 1–10."
+              description="Your overall assessment on a scale of 0–10."
               value={rating}
               onChange={setRating}
             />
@@ -655,7 +618,6 @@ const CreateReview = () => {
             <div className="flex items-center gap-2 border-b border-border pb-3">
               <div className="h-2 w-2 rounded-full bg-primary" />
               <h3 className="text-sm font-medium text-foreground">Objective Assessment</h3>
-              <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground/60">Facts</span>
             </div>
             <div>
               <label htmlFor="review-objective-notes" className="mb-1.5 block text-sm font-medium text-foreground">
@@ -677,7 +639,6 @@ const CreateReview = () => {
             <div className="flex items-center gap-2 border-b border-border pb-3">
               <div className="h-2 w-2 rounded-full bg-accent" />
               <h3 className="text-sm font-medium text-foreground">Subjective Opinion</h3>
-              <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground/60">Taste</span>
             </div>
             <div>
               <label htmlFor="review-subjective-opinion" className="mb-1.5 block text-sm font-medium text-foreground">

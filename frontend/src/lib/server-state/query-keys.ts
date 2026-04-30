@@ -3,6 +3,12 @@ import type {
   GetOutgoingAccessRequestsRequestDto,
 } from "@/lib/api/access-requests";
 import type {
+  GetDirectConversationMessagesRequestDto,
+  GetDirectConversationSummariesRequestDto,
+  GetSupportThreadMessagesRequestDto,
+  GetSupportThreadSummariesRequestDto,
+} from "@/lib/api/messaging";
+import type {
   GetMyOpinionListsRequestDto,
   GetOpinionListRequestDto,
   GetOpinionListSummaryRequestDto,
@@ -95,10 +101,44 @@ export const selectorsKeys = {
   ] as const,
 };
 
+export const messagingKeys = {
+  all: ["messaging"] as const,
+  unreadCount: () => ["messaging", "unread-count"] as const,
+  directConversations: (request: GetDirectConversationSummariesRequestDto) => [
+    "messaging",
+    "direct",
+    "conversations",
+    request.pageable,
+  ] as const,
+  directConversationMessages: (request: GetDirectConversationMessagesRequestDto) => [
+    "messaging",
+    "direct",
+    "conversations",
+    request.conversationId,
+    "messages",
+    request.pageable,
+  ] as const,
+  supportThreads: (request: GetSupportThreadSummariesRequestDto) => [
+    "messaging",
+    "support",
+    "threads",
+    request.pageable,
+  ] as const,
+  supportThreadMessages: (request: GetSupportThreadMessagesRequestDto) => [
+    "messaging",
+    "support",
+    "threads",
+    request.threadId,
+    "messages",
+    request.pageable,
+  ] as const,
+};
+
 export const usersKeys = {
   all: ["users"] as const,
   me: () => ["users", "me"] as const,
   detail: (id: string) => ["users", "detail", id] as const,
+  search: (query: string) => ["users", "search", query] as const,
   avatar: (id: string) => ["users", "avatar", id] as const,
   withRoles: () => ["users", "with-roles"] as const,
 };
@@ -128,6 +168,7 @@ export const queryKeys = {
   opinions: opinionsKeys,
   opinionLists: opinionListsKeys,
   accessRequests: accessRequestsKeys,
+  messaging: messagingKeys,
   selectors: selectorsKeys,
   referents: referentsKeys,
   subjects: subjectsKeys,

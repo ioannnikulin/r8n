@@ -10,6 +10,8 @@ import java.time.Instant
 import java.util.UUID
 
 interface SupportThreadRepository : JpaRepository<SupportThreadPersistence, UUID> {
+    fun findFirstByOwnerUserId(ownerUserId: UUID): SupportThreadPersistence?
+
     @Query(
         """
         SELECT thread

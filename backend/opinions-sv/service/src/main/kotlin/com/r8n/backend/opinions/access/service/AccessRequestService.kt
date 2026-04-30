@@ -2,8 +2,11 @@ package com.r8n.backend.opinions.access.service
 
 import com.r8n.backend.opinions.access.database.AccessRequestRepository
 import com.r8n.backend.opinions.access.domain.AccessRequest
+import com.r8n.backend.opinions.access.domain.AccessRequestIntent
 import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import com.r8n.backend.opinions.access.persistence.AccessRequestPersistence
+import com.r8n.backend.opinions.lists.domain.OpinionListPrivacyEnum
+import com.r8n.backend.opinions.lists.service.OpinionListService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
@@ -17,6 +20,7 @@ import java.util.UUID
 class AccessRequestService(
     private val repository: AccessRequestRepository,
     private val accessService: AccessService,
+    private val opinionListService: OpinionListService,
 ) {
     private companion object {
         val ACTIVE_REQUEST_STATUSES =
@@ -57,24 +61,43 @@ class AccessRequestService(
             createdAt = createdAt,
             updatedAt = updatedAt,
             ownerId = accessService.getListOwner(list),
+            intent = intent,
+            targetListId = targetListId,
         )
 
     @Transactional
     fun createRequest(
         listId: UUID,
         requesterId: UUID,
+        intent: AccessRequestIntent = AccessRequestIntent.NONE,
+        targetListId: UUID? = null,
     ): AccessRequest {
         if (accessService.getListOwner(listId) == requesterId) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner cannot request access to their own list")
         }
 
-        val existing =
-            repository
-                .findByRequesterAndListAndStatusIn(requesterId, listId, ACTIVE_REQUEST_STATUSES)
-                .firstOrNull()
-                ?.toDomain()
-        if (existing != null) {
-            return existing
+        if (intent == AccessRequestIntent.MERGE) {
+            if (targetListId == null) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "MERGE intent requires targetListId")
+            }
+            if (!accessService.ownsOpinionList(requesterId, targetListId)) {
+                throw ResponseStatusException(HttpStatus.FORBIDDEN, "You don't own the target list")
+            }
+        } else if (targetListId != null) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "targetListId is only valid for MERGE intent")
+        }
+
+        // Idempotent for the pending row, but keep the requester's latest intent.
+        // Terminal states (CANCELLED, REJECTED) and ACCEPTED do not block creating a new SENT row.
+        val existingSent =
+            repository.findFirstByRequesterAndListAndStatus(requesterId, listId, RequestStatusEnum.SENT)
+        if (existingSent != null) {
+            if (existingSent.intent != intent || existingSent.targetListId != targetListId) {
+                existingSent.intent = intent
+                existingSent.targetListId = targetListId
+                existingSent.updatedAt = Instant.now()
+            }
+            return repository.save(existingSent).toDomain()
         }
 
         val now = Instant.now()
@@ -85,6 +108,8 @@ class AccessRequestService(
                 status = RequestStatusEnum.SENT,
                 createdAt = now,
                 updatedAt = now,
+                intent = intent,
+                targetListId = targetListId,
             )
         return repository.save(request).toDomain()
     }
@@ -132,7 +157,41 @@ class AccessRequestService(
 
         request.status = RequestStatusEnum.ACCEPTED
         request.updatedAt = Instant.now()
-        return repository.save(request).toDomain()
+        val acceptedRequest = repository.save(request)
+        executeAcceptedIntent(acceptedRequest)
+        return acceptedRequest.toDomain()
+    }
+
+    private fun executeAcceptedIntent(request: AccessRequestPersistence) {
+        when (request.intent) {
+            AccessRequestIntent.NONE -> Unit
+            AccessRequestIntent.COPY -> {
+                val sourceName = opinionListService.getListName(request.list, request.requester)
+                val copiedList =
+                    opinionListService.createList(
+                        ownerId = request.requester,
+                        name = "Copy of $sourceName",
+                        privacy = OpinionListPrivacyEnum.PRIVATE,
+                    )
+                opinionListService.syncWithOpinionList(
+                    userId = request.requester,
+                    existingListId = copiedList.id,
+                    addedListId = request.list,
+                    weight = 1.0,
+                )
+            }
+            AccessRequestIntent.MERGE -> {
+                val targetListId =
+                    request.targetListId
+                        ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "MERGE intent requires targetListId")
+                opinionListService.syncWithOpinionList(
+                    userId = request.requester,
+                    existingListId = targetListId,
+                    addedListId = request.list,
+                    weight = 1.0,
+                )
+            }
+        }
     }
 
     @Transactional

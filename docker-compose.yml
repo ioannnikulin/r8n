@@ -10,6 +10,13 @@ x-tls-client-common-env: &tls-client-common-env
     -Djavax.net.ssl.trustStorePassword=${TLS_TRUSTSTORE_PASSWORD:?}
     -Djavax.net.ssl.trustStoreType=PKCS12
 
+x-jvm-service-healthcheck: &jvm-service-healthcheck
+  test: ["CMD-SHELL", "bash -ec 'echo > /dev/tcp/localhost/8080'"]
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 10s
+
 services:
   database:
     image: postgres:15
@@ -26,6 +33,12 @@ services:
       - ./deployment/database/init:/docker-entrypoint-initdb.d:ro
     networks:
       - r8n_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   opinions:
     build:
@@ -47,7 +60,9 @@ services:
       - ./deployment/opinions/logs:/var/log/r8n
       - ./deployment/certs/internal:/certs:ro
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    healthcheck: *jvm-service-healthcheck
 
   mock:
     build:
@@ -68,6 +83,7 @@ services:
       - ./deployment/mock/logs:/var/log/r8n
       - ./deployment/certs:/certs:ro
       - ./deployment/certs/internal:/certs:ro
+    healthcheck: *jvm-service-healthcheck
 
   messaging:
     build:
@@ -89,7 +105,9 @@ services:
       - ./deployment/messaging/logs:/var/log/r8n
       - ./deployment/certs/internal:/certs:ro
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    healthcheck: *jvm-service-healthcheck
 
   users:
     build:
@@ -112,7 +130,9 @@ services:
       - ./deployment/users/avatar-storage:/var/lib/r8n/uploads/avatars
       - ./deployment/certs/internal:/certs:ro
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    healthcheck: *jvm-service-healthcheck
 
   export:
     build:
@@ -131,6 +151,8 @@ services:
       SERVICES_USERS_PORT: ${SERVICES_USERS_PORT:?}
       SERVICES_MOCK_HOST: ${SERVICES_MOCK_HOST:?}
       SERVICES_MOCK_PORT: ${SERVICES_MOCK_PORT:?}
+      SERVICES_MESSAGING_HOST: ${SERVICES_MESSAGING_HOST:?}
+      SERVICES_MESSAGING_PORT: ${SERVICES_MESSAGING_PORT:?}
       LOGGING_FILE_NAME: ${LOGGING_FILE_NAME:?}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
     networks:
@@ -139,11 +161,17 @@ services:
       - ./deployment/export/logs:/var/log/r8n
       - ./deployment/certs/internal:/certs:ro
     depends_on:
-      - database
-      - users
-      - mock
-      - messaging
-      - opinions
+      database:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+      mock:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
+      opinions:
+        condition: service_healthy
+    healthcheck: *jvm-service-healthcheck
 
   gateway:
     build:
@@ -173,25 +201,33 @@ services:
     ports:
       - "${GATEWAY_HOST_PORT:?}:${GATEWAY_CONTAINER_PORT:?}"
     depends_on:
-      - opinions
-      - mock
-      - messaging
-      - users
-      - export
-      - database
+      opinions:
+        condition: service_healthy
+      mock:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
+      users:
+        condition: service_healthy
+      export:
+        condition: service_healthy
+      database:
+        condition: service_healthy
     networks:
       - r8n_net
     volumes:
       - ./deployment/gateway/logs:/var/log/r8n
       - ./deployment/certs:/certs:ro
       - ./deployment/certs/internal:/certs:ro
+    healthcheck: *jvm-service-healthcheck
 
   frontend:
     build:
       context: .
       dockerfile: deployment/frontend/Dockerfile
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
     ports:
       - "${FRONTEND_HTTP_HOST_PORT:?}:80"
       - "${FRONTEND_HTTPS_HOST_PORT:?}:443"

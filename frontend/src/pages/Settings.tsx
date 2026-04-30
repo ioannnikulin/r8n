@@ -73,21 +73,6 @@ const Settings = () => {
                   <p className="text-sm text-muted-foreground">{email}</p>
                 </div>
 
-                <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-                  <h3 className="text-sm font-medium text-foreground">Password</h3>
-                  <p className="text-xs text-muted-foreground">Change your password to keep your account secure.</p>
-                  <Button variant="outline" size="sm" className="rounded-xl">
-                    Change password
-                  </Button>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-                  <h3 className="text-sm font-medium text-foreground">Two-factor authentication</h3>
-                  <p className="text-xs text-muted-foreground">Add an extra layer of security to your account.</p>
-                  <Button variant="outline" size="sm" className="rounded-xl">
-                    Enable 2FA
-                  </Button>
-                </div>
 
                 <div className="rounded-2xl border border-destructive/20 bg-card p-5 space-y-4">
                   <h3 className="text-sm font-medium text-destructive">Danger zone</h3>

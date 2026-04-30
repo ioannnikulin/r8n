@@ -11,6 +11,7 @@ import com.r8n.backend.messaging.api.dto.SupportThreadDto
 import com.r8n.backend.messaging.api.dto.messaging.SupportMessageDto
 import com.r8n.backend.messaging.api.dto.messaging.SupportParticipantRoleEnumDto
 import com.r8n.backend.messaging.api.dto.messaging.SupportThreadSummaryDto
+import com.r8n.backend.messaging.api.dto.messaging.SupportThreadViewerRoleEnumDto
 import com.r8n.backend.opinions.api.access.IncomingAccessRequestApi
 import com.r8n.backend.opinions.api.access.OutgoingAccessRequestApi
 import com.r8n.backend.opinions.api.access.dto.AccessRequestDto
@@ -156,8 +157,11 @@ class ExportIntegrationTests {
                     SupportThreadSummaryDto(
                         id = supportThreadId,
                         ownerUserId = UUID.fromString(USER_ID),
+                        viewerRole = SupportThreadViewerRoleEnumDto.REQUESTER,
                         createdAt = timestamp,
                         lastMessageAt = timestamp,
+                        lastMessageText = "I have issue with post",
+                        unreadCount = 0,
                     ),
                 ),
             ).toResponse(),
@@ -169,6 +173,7 @@ class ExportIntegrationTests {
                         id = UUID.fromString("00000000-0000-0000-0000-000000000002"),
                         threadId = supportThreadId,
                         authorUserId = UUID.fromString(USER_ID),
+                        authorDisplayName = "Test User",
                         authorRole = SupportParticipantRoleEnumDto.USER,
                         text = "I have issue with post",
                         createdAt = timestamp,

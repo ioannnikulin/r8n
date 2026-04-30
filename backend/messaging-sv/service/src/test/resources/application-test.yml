@@ -38,3 +38,6 @@ r8n:
         bTbKa8ImmQP+ysdWX4C+bh7gTZXTWYcFpSUF2b84t/xrNuqlcZZweMSvIfZGsk4Z
         MQIDAQAB
         -----END PUBLIC KEY-----
+services:
+  users:
+    url: http://localhost

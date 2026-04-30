@@ -32,6 +32,9 @@ class UserController(
     override fun getUserProfile(id: UUID) = userFacade.getUserProfile(id)
 
     @PreAuthorize(IS_USER)
+    override fun searchUsers(query: String) = userFacade.searchUsers(getCurrentUserId(), query)
+
+    @PreAuthorize(IS_USER)
     override fun updateMyPublicProfile(request: UpdateMyPublicProfileRequestDto) =
         userFacade.updateMyPublicProfile(getCurrentUserId(), request)
 

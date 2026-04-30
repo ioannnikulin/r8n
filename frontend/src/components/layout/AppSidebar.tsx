@@ -4,8 +4,7 @@ import logo from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import UserAvatar from "@/components/UserAvatar";
 import { useLocation } from "react-router-dom";
-import { getUnreadMessagesCount, MOCK_MESSAGE_THREADS } from "@/lib/messages";
-import { useLogoutMutation } from "@/lib/server-state";
+import { useLogoutMutation, useUnreadMessagesCount } from "@/lib/server-state";
 import { useMe } from "@/lib/server-state/hooks/users";
 import { useIncomingAccessRequests } from "@/lib/server-state/hooks/access-requests";
 import {
@@ -34,7 +33,7 @@ const mainItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const unreadMessagesCount = getUnreadMessagesCount(MOCK_MESSAGE_THREADS);
+  const unreadMessagesCount = useUnreadMessagesCount({ refetchInterval: 30_000 });
   const location = useLocation();
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation({
