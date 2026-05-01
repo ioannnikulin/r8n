@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { getApiErrorMessage } from "@/lib/server-state/errors";
+import { HttpError } from "@/lib/http-client";
 
 interface QueryStateProps {
   children: ReactNode;
@@ -55,6 +56,9 @@ export function QueryState({
   }
 
   if (isError) {
+    if (error instanceof HttpError && error.status === 403) {
+      return <>{children}</>;
+    }
     const message = errorMessage ?? getApiErrorMessage(error, "Something went wrong.");
     return <StateShell title="Unable to load" description={message} onRetry={onRetry} />;
   }

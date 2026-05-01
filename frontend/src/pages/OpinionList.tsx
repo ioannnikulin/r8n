@@ -6,8 +6,10 @@ import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import RatingInput from "@/components/RatingInput";
+import AccessRequestButton from "@/components/AccessRequestButton";
 import { QueryState } from "@/components/server-state/QueryState";
 import { cn } from "@/lib/utils";
+import { HttpError } from "@/lib/http-client";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,7 @@ import {
   useMoveOpinionMutation,
   useRenameOpinionListMutation,
 } from "@/lib/server-state/hooks/opinion-lists";
+import { useOutgoingAccessRequests } from "@/lib/server-state/hooks/access-requests";
 import {
   useCreateOpinionMutation,
   useUpdateOpinionMutation,
@@ -58,6 +61,13 @@ const OpinionListPage = () => {
     { listId: listId!, publishedAfter: publishedAfter ? new Date(publishedAfter).toISOString() : undefined },
     { enabled: !!listId },
   );
+
+  const { data: outgoingRequests } = useOutgoingAccessRequests(
+    { pageable: { page: 0, size: 100 } },
+    { enabled: isError && (error as HttpError)?.status === 403 },
+  );
+
+  const requestStatus = outgoingRequests?.items.find((r) => r.listId === listId)?.status as "none" | "pending" | "approved" | "declined" | undefined;
 
   const createOpinion = useCreateOpinionMutation();
   const linkOpinion = useLinkOpinionToListMutation();
@@ -129,8 +139,29 @@ const OpinionListPage = () => {
         isEmpty={false}
         onRetry={refetch}
       >
-        <>
-          <motion.div
+        {isError && error instanceof HttpError && error.status === 403 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-primary/10 p-4">
+                <Lock className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">
+              You don't have access to this list yet, please send a request.
+            </p>
+            <div className="flex justify-center">
+              <AccessRequestButton
+                listId={listId!}
+                status={requestStatus}
+                listTitle={data?.listName || "this list"}
+                className="px-8 h-10"
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
