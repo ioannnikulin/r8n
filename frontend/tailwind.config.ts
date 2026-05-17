@@ -15,9 +15,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["'Instrument Serif'", "serif"],
-        body: ["'Geist Sans'", "system-ui", "sans-serif"],
-        mono: ["'Geist Mono'", "monospace"],
+        display: ["ui-serif", "Georgia", "Cambria", "\"Times New Roman\"", "Times", "serif"],
+        body: ["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "\"Segoe UI\"", "sans-serif"],
+        mono: ["ui-monospace", "\"SFMono-Regular\"", "\"SF Mono\"", "Consolas", "\"Liberation Mono\"", "Menlo", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
