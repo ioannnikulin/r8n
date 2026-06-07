@@ -19,12 +19,16 @@ graph LR
   Vite["Vite Dev Server (localhost:5173)"]
   Gateway["Gateway API (localhost:8080)"]
   Opinions["Opinions Service (localhost:8081)"]
-  Mock["Mock Service (localhost:8090)"]
+  Users["Users Service (localhost:8082)"]
+Export["Export Service (localhost:8083)"]
+Mock["Mock Service (localhost:8090)"]
 
   Browser -->|"http://localhost:5173"| Vite
   Vite -->|"/api -> https://localhost:8080"| Gateway
   Gateway -->|"https://localhost:8081"| Opinions
-  Gateway -->|"https://localhost:8090"| Mock
+  Gateway -->|"https://localhost:8082"| Users
+Gateway -->|"https://localhost:8083"| Export
+Gateway -->|"https://localhost:8090"| Mock
 ```
 
 Local production (Docker):
@@ -35,12 +39,16 @@ graph LR
   Nginx["Nginx (frontend)"]
   Gateway["Gateway API (gateway:8080)"]
   Opinions["Opinions Service (opinions:8080)"]
-  Mock["Mock Service (mock:8080)"]
+  Users["Users Service (users:8080)"]
+Export["Export Service (export:8080)"]
+Mock["Mock Service (mock:8080)"]
 
   Browser -->|"HTTPS :8443 -> container :443"| Nginx
   Nginx -->|"HTTPS :8080"| Gateway
   Gateway -->|"HTTPS :8080"| Opinions
-  Gateway -->|"HTTPS :8080"| Mock
+  Gateway -->|"HTTPS :8080"| Users
+Gateway -->|"HTTPS :8080"| Export
+Gateway -->|"HTTPS :8080"| Mock
 ```
 
 ## Runtime API Sequence (Nginx + Gateway)
@@ -73,7 +81,7 @@ Dev (Vite):
 Runtime (local production):
 - Browser talks to Nginx over `https://localhost:8443` by default.
 - Nginx serves static assets and proxies `/api` to the gateway at `https://gateway:8080`.
-- The gateway reaches services by name on `https://opinions:8080` and `https://mock:8080`.
+- The gateway reaches services by name on `https://opinions:8080`, `https://users:8080`, `https://export:8080`, and `https://mock:8080`.
 - This mirrors a production edge setup with TLS termination at the edge and HTTPS on the private network.
 
 ## Ports by Mode
@@ -112,7 +120,9 @@ graph TB
   Browser -->|"HTTPS :8443"| Nginx
   Nginx -->|"HTTPS :8080"| Gateway
   Gateway -->|"HTTPS :8080"| Opinions
-  Gateway -->|"HTTPS :8080"| Mock
+  Gateway -->|"HTTPS :8080"| Users
+Gateway -->|"HTTPS :8080"| Export
+Gateway -->|"HTTPS :8080"| Mock
 ```
 
 ## Why HTTPS at the Edge

@@ -21,3 +21,4 @@ docker.secrets.env
 frontend/e2e/auth-state.json
 BOOT-INF/
 .cookies
+deployment/database/data/

@@ -57,7 +57,7 @@ Build and dependency management system for backend. Runs every time you build ba
 - return to running terminal, Ctrl-C and press any key to terminate
 
 # Running backend in an external terminal
-- only gateway and opinions-sv is runnable currently
+- all 5 services are runnable: gateway, opinions, mock, users, export
 - `make docker-run-database`
 - `make local-run-opinions`, see opinions.log filled and opinions-sv started successfully
 - `make direct-request-opinion`, see valid result
