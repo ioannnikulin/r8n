@@ -167,6 +167,6 @@ class RoleManagementIntegrationTest {
                         "Authorization",
                         "Bearer ${tokenService.generateAccessToken(secondAdminId, listOf("ADMIN"))}",
                     ),
-            ).andExpect(status().isUnprocessableEntity)
+            ).andExpect(status().isUnprocessableContent)
     }
 }

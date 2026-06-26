@@ -231,7 +231,7 @@ class OpinionListSearchIntegrationTest {
                 .andReturn()
 
         val page = objectMapper.readValue<PageResponseDto<OpinionListSummaryDto>>(result.response.contentAsString)
-        assertThat(page.items.map { it.listName }).containsExactly("l21")
+        assertThat(page.items.map { it.listName }).containsExactly("l21", "l210")
     }
 
     @Test

@@ -21,6 +21,8 @@ import com.r8n.backend.opinions.opinions.database.ReferentRepository
 import com.r8n.backend.opinions.opinions.domain.Opinion
 import com.r8n.backend.opinions.opinions.service.OpinionService
 import com.r8n.backend.users.integration.api.UsersInternalApi
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -30,6 +32,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
 import java.util.UUID
 
 @Service
@@ -141,7 +144,7 @@ class OpinionListService(
     fun getList(
         listId: UUID,
         requesterId: UUID,
-        publishedAfter: java.time.Instant? = null,
+        publishedAfter: Instant? = null,
     ): OpinionList {
         val list =
             opinionListRepository
@@ -193,11 +196,11 @@ class OpinionListService(
         requesterId: UUID,
     ) {
         val listId = list.id!!
-        if (!accessService.canAccessOpinionList(requesterId, listId, OpinionListPermissionEnum.VIEW)) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN)
-        }
         if (!accessService.ownsOpinionList(requesterId, listId) && list.privacy == OpinionListPrivacyEnum.PRIVATE) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+        if (!accessService.canAccessOpinionList(requesterId, listId, OpinionListPermissionEnum.VIEW)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN)
         }
     }
 
@@ -231,7 +234,7 @@ class OpinionListService(
     private fun fetchAndEnrichOpinions(
         assignments: List<OpinionsToOpinionListsPersistence>,
         requesterId: UUID,
-        publishedAfter: java.time.Instant? = null,
+        publishedAfter: Instant? = null,
     ): List<Opinion> =
         assignments.mapNotNull { asmt ->
             try {
@@ -314,6 +317,7 @@ class OpinionListService(
         listId: UUID,
         requesterId: UUID,
     ): OpinionListInfo {
+        log.debug("Getting list info for list {} and requester {}", listId, requesterId)
         val list =
             opinionListRepository
                 .findById(listId)
@@ -616,7 +620,7 @@ class OpinionListService(
 
     private fun filterByYoungerThan(
         resultIds: MutableSet<UUID>,
-        youngerThan: java.time.Instant?,
+        youngerThan: Instant?,
     ) {
         youngerThan?.let { timestamp ->
             val opinionIds = opinionRepository.findIdsByTimestampAfter(timestamp)
@@ -692,6 +696,8 @@ class OpinionListService(
         )
 
     private companion object {
+        var log: Logger = LoggerFactory.getLogger(OpinionListService::class.java)
+
         fun toDomain(
             list: OpinionListPersistence,
             summaries: List<OpinionSummary>,
