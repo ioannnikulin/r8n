@@ -22,4 +22,3 @@ frontend/e2e/auth-state.json
 BOOT-INF/
 .cookies
 deployment/database/data/
-.last-run.json
