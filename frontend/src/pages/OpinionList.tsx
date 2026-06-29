@@ -35,6 +35,7 @@ import {
   useMoveOpinionMutation,
   useRenameOpinionListMutation,
 } from "@/lib/server-state/hooks/opinion-lists";
+import { useCreateOutgoingAccessRequestMutation } from "@/lib/server-state/hooks/access-requests";
 import {
   useCreateOpinionMutation,
   useUpdateOpinionMutation,
@@ -45,6 +46,9 @@ import { useMe } from "@/lib/server-state/hooks/users";
 import type { OpinionRowDto, OpinionSummaryDto } from "@/lib/api/opinions";
 import type { OpinionListSummaryDto } from "@/lib/api/opinion-lists";
 import type { Uuid } from "@/lib/api/shared";
+
+import { HttpError } from "@/lib/http-client";
+import { toast } from "@/hooks/use-toast";
 
 const OpinionListPage = () => {
   const { id: listId } = useParams<{ id: string }>();
@@ -68,6 +72,14 @@ const OpinionListPage = () => {
   const setListPrivacy = useSetOpinionListPrivacyMutation();
   const moveOpinion = useMoveOpinionMutation();
   const renameList = useRenameOpinionListMutation();
+  const requestAccess = useCreateOutgoingAccessRequestMutation({
+    onSuccess: () => {
+      toast({
+        title: "Request sent",
+        description: "Your access request has been sent to the list owner.",
+      });
+    },
+  });
 
   const me = useMe();
   const currentUserId = me.data?.id ?? null;
@@ -124,13 +136,47 @@ const OpinionListPage = () => {
 
       <QueryState
         isLoading={isLoading}
-        isError={isError}
+        isError={isError && !(error instanceof HttpError && (error.status === 403 || error.status === 404))}
         error={error}
         isEmpty={false}
         onRetry={refetch}
       >
-        <>
-          <motion.div
+        {isError && error instanceof HttpError && error.status === 404 ? (
+          <div className="rounded-2xl border border-border bg-card p-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+              <Search className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Opinion list not found</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
+              The list you're looking for doesn't exist, has been deleted, or is private.
+            </p>
+            <Button asChild variant="outline">
+              <Link to="/lists">Go to my lists</Link>
+            </Button>
+          </div>
+        ) : isError && error instanceof HttpError && error.status === 403 ? (
+          <div className="rounded-2xl border border-border bg-card p-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+              <Lock className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Access restricted</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
+              You need permission to view this opinion list.
+            </p>
+            <Button
+              onClick={() => {
+                if (listId) {
+                  requestAccess.mutate({ listId });
+                }
+              }}
+              disabled={requestAccess.isPending}
+            >
+              {requestAccess.isPending ? "Sending..." : "Request Access"}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -373,7 +419,8 @@ const OpinionListPage = () => {
             )}
           </motion.div>
         </>
-      </QueryState>
+      )}
+    </QueryState>
     </div>
   );
 };

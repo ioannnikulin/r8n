@@ -4,6 +4,7 @@ import com.r8n.backend.opinions.TestObjectMapperConfiguration
 import com.r8n.backend.opinions.access.database.AccessRequestRepository
 import com.r8n.backend.opinions.access.domain.RequestStatusEnum
 import com.r8n.backend.opinions.api.lists.dto.OpinionListDto
+import com.r8n.backend.opinions.lists.OpinionListPrivacyLeakIntegrationTest.Companion.PRIVATE_UNAPPROVED
 import com.r8n.backend.opinions.lists.database.OpinionListRepository
 import com.r8n.backend.opinions.lists.database.OpinionListSyncRepository
 import com.r8n.backend.security.ServiceTokenService
@@ -46,7 +47,6 @@ import java.util.UUID
 @Import(TestObjectMapperConfiguration::class)
 class OpinionListSyncIntegrationTest {
     private companion object {
-        val BERNARD_ID: UUID = UUID.fromString("10101010-1010-1010-1010-101010101010")
         val ANNA_ID: UUID = UUID.fromString("20202020-2020-2020-2020-202020202020")
 
         val BERNARD_LIST_ID: UUID = UUID.fromString("70000000-0000-0000-0000-000000000001")
@@ -361,17 +361,14 @@ class OpinionListSyncIntegrationTest {
 
     @Test
     fun `syncing with private list without access should return not found`() {
-        // Bernard has a private list l24
-        val l23Id = UUID.fromString("80000000-0000-0000-0000-000000000223")
-
-        // Anna tries to sync her list l11 with Bernard's private list l23
-        // It returns 404 because for a private list, if you don't have access, we return 404 to avoid leaking existence
-        mockMvc
-            .perform(
-                post("/api/opinion-lists/$ANNA_LIST_ID/sync")
-                    .header("Authorization", requesterToken)
-                    .param("addedListId", l23Id.toString()),
-            ).andExpect(status().isNotFound)
+        for (id in PRIVATE_UNAPPROVED) {
+            mockMvc
+                .perform(
+                    post("/api/opinion-lists/$ANNA_LIST_ID/sync")
+                        .header("Authorization", requesterToken)
+                        .param("addedListId", id.toString()),
+                ).andExpect(status().isNotFound)
+        }
     }
 
     @Test
