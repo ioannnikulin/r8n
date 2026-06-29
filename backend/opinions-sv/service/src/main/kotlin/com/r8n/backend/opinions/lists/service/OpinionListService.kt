@@ -21,8 +21,6 @@ import com.r8n.backend.opinions.opinions.database.ReferentRepository
 import com.r8n.backend.opinions.opinions.domain.Opinion
 import com.r8n.backend.opinions.opinions.service.OpinionService
 import com.r8n.backend.users.integration.api.UsersInternalApi
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -317,7 +315,6 @@ class OpinionListService(
         listId: UUID,
         requesterId: UUID,
     ): OpinionListInfo {
-        log.debug("Getting list info for list {} and requester {}", listId, requesterId)
         val list =
             opinionListRepository
                 .findById(listId)
@@ -696,8 +693,6 @@ class OpinionListService(
         )
 
     private companion object {
-        var log: Logger = LoggerFactory.getLogger(OpinionListService::class.java)
-
         fun toDomain(
             list: OpinionListPersistence,
             summaries: List<OpinionSummary>,
