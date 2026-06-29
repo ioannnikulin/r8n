@@ -38,7 +38,7 @@ import java.util.UUID
 )
 @Import(TestObjectMapperConfiguration::class)
 class OpinionListPrivacyLeakIntegrationTest {
-    private companion object {
+    companion object {
         val ANNA_ID: UUID = UUID.fromString("20202020-2020-2020-2020-202020202020")
 
         val PRIVATE_UNAPPROVED =
